@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tokyo Trip Map — June 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #map { height: 100%; width: 100%; }
+    .panel { position:absolute; z-index:1000; top:12px; left:12px; background:white; padding:14px 16px; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,.18); width:350px; max-width:calc(100vw - 48px); line-height:1.35; }
+    .panel h1 { font-size:18px; margin:0 0 6px; }
+    .panel p { font-size:13px; margin:6px 0; color:#444; }
+    .filters { margin-top:10px; display:grid; gap:10px; max-height:54vh; overflow:auto; padding-right:4px; }
+    .filter-block { border-top:1px solid #eee; padding-top:8px; }
+    .filter-title { font-weight:700; font-size:13px; margin-bottom:5px; }
+    label { display:block; font-size:13px; margin:4px 0; cursor:pointer; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+    .btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    button { border:1px solid #ddd; border-radius:999px; background:#f8fafc; padding:5px 9px; font-size:12px; cursor:pointer; }
+    button:hover { background:#eef2ff; }
+    .count { font-size:12px; color:#555; margin-top:8px; }
+    .leaflet-popup-content { font-size:14px; }
+    .popup-title { font-weight:700; font-size:15px; margin-bottom:4px; }
+    .tag { display:inline-block; padding:2px 6px; border-radius:999px; background:#eee; font-size:12px; margin:4px 4px 0 0; }
+    @media (max-width:700px) { .panel { bottom:12px; top:auto; max-height:45vh; overflow:auto; } }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="panel">
+    <h1>Tokyo Trip Map — 5–10 June 2026</h1>
+    <p>Base: <strong>Hotel Villa Fontaine Grand Tokyo-Shiodome</strong>. Arrival: <strong>Haneda, 09:45 on 5 June</strong>.</p>
+    <p>Use the filters to show/hide pins by category or by day.</p>
+    <div class="btns">
+      <button onclick="selectAll('category')">All categories</button>
+      <button onclick="clearAll('category')">Clear categories</button>
+      <button onclick="selectAll('day')">All days</button>
+      <button onclick="clearAll('day')">Clear days</button>
+    </div>
+    <div class="filters">
+      <div class="filter-block"><div class="filter-title">Categories</div><div id="categoryFilters"></div></div>
+      <div class="filter-block"><div class="filter-title">Days / groupings</div><div id="dayFilters"></div></div>
+    </div>
+    <div class="count" id="visibleCount"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const places = [{"name": "Haneda Airport", "day": "Fri 5 Jun – arrival", "dayGroup": "Fri 5 Jun", "category": "Booked/main travel", "rawCategory": "Travel", "lat": 35.5494, "lng": 139.7798, "search": "Tokyo Haneda Airport", "notes": "Arrive 09:45. Aim to head into Tokyo after immigration/baggage."}, {"name": "Hotel Villa Fontaine Grand Tokyo-Shiodome", "day": "Base", "dayGroup": "Base / hotel", "category": "Hotel/base", "rawCategory": "Hotel", "lat": 35.6643, "lng": 139.7607, "search": "1-9-2 Higashi-Shinbashi, Minato-ku, Tokyo", "notes": "Base for Tokyo. Check-in is 15:00; leave luggage first if needed."}, {"name": "Hamarikyu Gardens", "day": "Fri 5 Jun – light arrival option", "dayGroup": "Fri 5 Jun", "category": "Temples, scenic & views", "rawCategory": "Scenic", "lat": 35.66, "lng": 139.7633, "search": "Hamarikyu Gardens Tokyo", "notes": "Easy low-effort walk near the hotel before check-in if you have energy."}, {"name": "Ginza", "day": "Fri 5 Jun – arrival afternoon", "dayGroup": "Fri 5 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Shopping", "lat": 35.6719, "lng": 139.765, "search": "Ginza Tokyo", "notes": "Good first afternoon from Shiodome: shopping, cafés and easy wandering."}, {"name": "Age.3 Ginza", "day": "Fri 5 Jun or Mon 8 Jun", "dayGroup": "Fri 5 Jun", "category": "Cafés & food", "rawCategory": "Cafe/food", "lat": 35.674, "lng": 139.7715, "search": "1-24-11 Ginza, Chuo, Tokyo", "notes": "Fried cream sandwich place; easiest on arrival day or Asakusa/Ginza day."}, {"name": "Shibuya Crossing", "day": "Fri 5 Jun – evening", "dayGroup": "Fri 5 Jun", "category": "Booked/main travel", "rawCategory": "Main plan", "lat": 35.6595, "lng": 139.7005, "search": "Shibuya Crossing Tokyo", "notes": "Iconic first-night Tokyo stop."}, {"name": "Shibuya Sky", "day": "Fri 5 Jun – evening", "dayGroup": "Fri 5 Jun", "category": "Booked/main travel", "rawCategory": "Main plan", "lat": 35.6585, "lng": 139.702, "search": "Shibuya Scramble Square, 2-24-12 Shibuya", "notes": "Best around sunset/night; book ahead."}, {"name": "MEGA Don Quijote Shibuya", "day": "Fri 5 Jun – evening", "dayGroup": "Fri 5 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Shopping", "lat": 35.6605, "lng": 139.6973, "search": "MEGA Don Quijote Shibuya", "notes": "Late-night snacks, souvenirs and chaos in a good way."}, {"name": "Uobei Shibuya Dogenzaka", "day": "Fri 5 Jun – evening food option", "dayGroup": "Fri 5 Jun", "category": "Cafés & food", "rawCategory": "Food", "lat": 35.6584, "lng": 139.6974, "search": "Uobei Shibuya Dogenzaka Tokyo", "notes": "Fun, fast conveyor/express sushi option near Shibuya."}, {"name": "Nintendo TOKYO / Pokémon Center Shibuya", "day": "Fri 5 Jun or spare Shibuya time", "dayGroup": "Fri 5 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Shopping", "lat": 35.6629, "lng": 139.6995, "search": "Shibuya PARCO Nintendo Tokyo Pokemon Center", "notes": "Easy add-on near Shibuya; good for character shopping."}, {"name": "Cafe Reissue", "day": "Sat 6 Jun – Harajuku", "dayGroup": "Sat 6 Jun", "category": "Cafés & food", "rawCategory": "Cafe", "lat": 35.6694, "lng": 139.707, "search": "3 Chome-25-7 Jingumae, Shibuya, Tokyo", "notes": "3D latte art; go earlier to reduce queue risk."}, {"name": "Takeshita Street / Harajuku", "day": "Sat 6 Jun – Harajuku", "dayGroup": "Sat 6 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Shopping", "lat": 35.6717, "lng": 139.7035, "search": "Takeshita Street Harajuku Tokyo", "notes": "Street food, crepes, fashion and character shops."}, {"name": "Meiji Shrine", "day": "Sat 6 Jun – Harajuku", "dayGroup": "Sat 6 Jun", "category": "Temples, scenic & views", "rawCategory": "Temple/scenic", "lat": 35.6764, "lng": 139.6993, "search": "Meiji Shrine Tokyo", "notes": "Peaceful contrast to Harajuku; easy walk from Takeshita/Harajuku Station."}, {"name": "Cat Cafe MoCHA Harajuku", "day": "Sat 6 Jun – cat cafe option", "dayGroup": "Sat 6 Jun", "category": "Cafés & food", "rawCategory": "Cafe/animals", "lat": 35.671, "lng": 139.7049, "search": "Cat Cafe MoCHA Harajuku Tokyo", "notes": "Placeholder cat-café option because 'Cat On coffee place' was ambiguous."}, {"name": "Gotokuji Temple", "day": "Sat 6 Jun – cat temple", "dayGroup": "Sat 6 Jun", "category": "Temples, scenic & views", "rawCategory": "Temple/scenic", "lat": 35.6531, "lng": 139.6475, "search": "Gotokuji Temple Tokyo", "notes": "Lucky cat temple; allow extra time because it is west of central Tokyo."}, {"name": "BAM BI COFFEE", "day": "Sat 6 Jun – evening option", "dayGroup": "Sat 6 Jun", "category": "Cafés & food", "rawCategory": "Cafe", "lat": 35.7007, "lng": 139.7054, "search": "Okubo 1-14-26, Shinjuku, Tokyo", "notes": "Aesthetic Korean cafe in Shin-Okubo; pairs well with Shinjuku evening."}, {"name": "Shinjuku / Kabukicho", "day": "Sat 6 Jun – evening", "dayGroup": "Sat 6 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Night/shopping", "lat": 35.6947, "lng": 139.7023, "search": "Kabukicho Shinjuku Tokyo", "notes": "Neon Tokyo night atmosphere."}, {"name": "Omoide Yokocho", "day": "Sat 6 Jun – evening", "dayGroup": "Sat 6 Jun", "category": "Cafés & food", "rawCategory": "Food/night", "lat": 35.6938, "lng": 139.6995, "search": "Omoide Yokocho Tokyo", "notes": "Atmospheric alley near Shinjuku Station."}, {"name": "Mt Fuji day trip meeting point", "day": "Sun 7 Jun – fixed booking", "dayGroup": "Sun 7 Jun", "category": "Booked/main travel", "rawCategory": "Booked", "lat": 35.6896, "lng": 139.7005, "search": "Mt Fuji tour meeting point Shinjuku Tokyo", "notes": "Placeholder near Shinjuku. Replace with exact tour meeting location from your booking."}, {"name": "Sensō-ji Temple", "day": "Mon 8 Jun – Asakusa", "dayGroup": "Mon 8 Jun", "category": "Temples, scenic & views", "rawCategory": "Temple/scenic", "lat": 35.7148, "lng": 139.7967, "search": "Sensoji Temple Tokyo", "notes": "Go early before the biggest crowds."}, {"name": "Nakamise-dori", "day": "Mon 8 Jun – Asakusa", "dayGroup": "Mon 8 Jun", "category": "Cafés & food", "rawCategory": "Shopping/food", "lat": 35.7128, "lng": 139.7965, "search": "Nakamise Dori Asakusa Tokyo", "notes": "Souvenirs and snacks on the approach to Sensō-ji."}, {"name": "Akihabara", "day": "Mon 8 Jun – afternoon", "dayGroup": "Mon 8 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Arcades/shopping", "lat": 35.6997, "lng": 139.7714, "search": "Akihabara Tokyo", "notes": "Good after Asakusa: arcades, gachapon, electronics and anime/game shops."}, {"name": "Tokyo Station / Character Street", "day": "Mon 8 Jun – afternoon option", "dayGroup": "Mon 8 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Shopping", "lat": 35.6812, "lng": 139.7671, "search": "Tokyo Character Street Tokyo Station", "notes": "Character stores and useful for later Kyoto train familiarity."}, {"name": "Ichiran Shibuya", "day": "Spare food option", "dayGroup": "Spare options", "category": "Cafés & food", "rawCategory": "Food", "lat": 35.661, "lng": 139.699, "search": "Ichiran Shibuya Tokyo", "notes": "Classic ramen booths if you end up back in Shibuya."}, {"name": "Flipper's / soufflé pancakes area", "day": "Spare food option", "dayGroup": "Spare options", "category": "Cafés & food", "rawCategory": "Food", "lat": 35.6617, "lng": 139.7042, "search": "Flippers pancakes Shibuya Tokyo", "notes": "Soufflé pancake option; check exact branch/queue on the day."}, {"name": "teamLab Planets TOKYO", "day": "Tue 9 Jun – fixed 09:30", "dayGroup": "Tue 9 Jun", "category": "Booked/main travel", "rawCategory": "Booked", "lat": 35.6491, "lng": 139.7898, "search": "teamLab Planets Tokyo Toyosu", "notes": "Booked for 09:30. Wear clothing that can be rolled above the knee."}, {"name": "Toyosu Market / waterfront", "day": "Tue 9 Jun – after teamLab", "dayGroup": "Tue 9 Jun", "category": "Cafés & food", "rawCategory": "Food/scenic", "lat": 35.6468, "lng": 139.7847, "search": "Toyosu Market Tokyo", "notes": "Useful food/waterfront add-on near teamLab."}, {"name": "DiverCity Tokyo Plaza / Gundam", "day": "Tue 9 Jun – Odaiba", "dayGroup": "Tue 9 Jun", "category": "Shopping, arcades & nightlife", "rawCategory": "Shopping", "lat": 35.6252, "lng": 139.7757, "search": "DiverCity Tokyo Plaza Gundam", "notes": "Shops, arcades and the giant Gundam statue."}, {"name": "Odaiba Seaside Park", "day": "Tue 9 Jun – Odaiba", "dayGroup": "Tue 9 Jun", "category": "Temples, scenic & views", "rawCategory": "Scenic", "lat": 35.6299, "lng": 139.7765, "search": "Odaiba Seaside Park Tokyo", "notes": "Waterfront views, good if the weather is nice."}, {"name": "Tokyo Tower", "day": "Tue 9 Jun – final night option", "dayGroup": "Tue 9 Jun", "category": "Temples, scenic & views", "rawCategory": "View/photo", "lat": 35.6586, "lng": 139.7454, "search": "Tokyo Tower", "notes": "Easy-ish from Shiodome and a good final-night photo/view option."}];
+    const catColors = {"Hotel/base": "#111827", "Booked/main travel": "#2563eb", "Caf\u00e9s & food": "#f59e0b", "Temples, scenic & views": "#10b981", "Shopping, arcades & nightlife": "#ef4444", "Other": "#8b5cf6"};
+    const dayColors = {"Fri 5 Jun": "#ef4444", "Sat 6 Jun": "#2563eb", "Sun 7 Jun": "#16a34a", "Mon 8 Jun": "#7c3aed", "Tue 9 Jun": "#f97316", "Base / hotel": "#111827", "Spare options": "#6b7280"};
+
+    const map = L.map('map').setView([35.675, 139.745], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+
+    function markerIcon(color) {
+      return L.divIcon({
+        className: 'custom-pin',
+        html: `<div style="background:${color};width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 7px rgba(0,0,0,.35)"></div>`,
+        iconSize: [24,24], iconAnchor: [12,12], popupAnchor: [0,-10]
+      });
+    }
+
+    const markers = [];
+    places.forEach(p => {
+      const google = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.search)}`;
+      const popup = `<div class="popup-title">${p.name}</div>
+        <div>${p.notes}</div>
+        <div><span class="tag">${p.day}</span><span class="tag">${p.category}</span></div>
+        <br><a href="${google}" target="_blank" rel="noopener">Open in Google Maps</a>`;
+      const marker = L.marker([p.lat, p.lng], {icon: markerIcon(catColors[p.category] || '#8b5cf6')}).bindPopup(popup);
+      marker.place = p;
+      markers.push(marker);
+    });
+
+    const routes = [
+      {label:'Fri 5 Jun flow', color:dayColors['Fri 5 Jun'], names:['Haneda Airport','Hotel Villa Fontaine Grand Tokyo-Shiodome','Hamarikyu Gardens','Ginza','Age.3 Ginza','Shibuya Crossing','Shibuya Sky','MEGA Don Quijote Shibuya']},
+      {label:'Sat 6 Jun flow', color:dayColors['Sat 6 Jun'], names:['Hotel Villa Fontaine Grand Tokyo-Shiodome','Cafe Reissue','Takeshita Street / Harajuku','Meiji Shrine','Gotokuji Temple','BAM BI COFFEE','Shinjuku / Kabukicho','Omoide Yokocho']},
+      {label:'Mon 8 Jun flow', color:dayColors['Mon 8 Jun'], names:['Hotel Villa Fontaine Grand Tokyo-Shiodome','Sensō-ji Temple','Nakamise-dori','Akihabara','Tokyo Station / Character Street','Hotel Villa Fontaine Grand Tokyo-Shiodome']},
+      {label:'Tue 9 Jun flow', color:dayColors['Tue 9 Jun'], names:['Hotel Villa Fontaine Grand Tokyo-Shiodome','teamLab Planets TOKYO','Toyosu Market / waterfront','DiverCity Tokyo Plaza / Gundam','Odaiba Seaside Park','Tokyo Tower','Hotel Villa Fontaine Grand Tokyo-Shiodome']}
+    ];
+    const byName = Object.fromEntries(places.map(p => [p.name, p]));
+    const routeLines = routes.map(r => {
+      const coords = r.names.filter(n => byName[n]).map(n => [byName[n].lat, byName[n].lng]);
+      const line = L.polyline(coords, {color:r.color, weight:3, opacity:.45}).bindTooltip(r.label);
+      line.dayGroup = r.label.split(' flow')[0];
+      return line;
+    });
+
+    const selected = { category: new Set([...new Set(places.map(p => p.category))]), day: new Set([...new Set(places.map(p => p.dayGroup))]) };
+    function makeFilters(type, containerId, colorMap) {
+      const container = document.getElementById(containerId);
+      [...selected[type]].forEach(value => {
+        const id = `${type}-${value}`.replace(/[^a-z0-9]/gi,'-');
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" id="${id}" checked data-type="${type}" data-value="${value}"> <span class="dot" style="background:${colorMap[value] || '#8b5cf6'}"></span>${value}`;
+        container.appendChild(label);
+      });
+    }
+    makeFilters('category','categoryFilters',catColors);
+    makeFilters('day','dayFilters',dayColors);
+
+    document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', e => {
+      const type = e.target.dataset.type; const value = e.target.dataset.value;
+      if (e.target.checked) selected[type].add(value); else selected[type].delete(value);
+      updateMap();
+    }));
+
+    function updateMap() {
+      let visible = [];
+      markers.forEach(m => {
+        const p = m.place;
+        const show = selected.category.has(p.category) && selected.day.has(p.dayGroup);
+        if (show) { if (!map.hasLayer(m)) m.addTo(map); visible.push(m); }
+        else { if (map.hasLayer(m)) map.removeLayer(m); }
+      });
+      routeLines.forEach(line => {
+        const show = selected.day.has(line.dayGroup);
+        if (show) { if (!map.hasLayer(line)) line.addTo(map); }
+        else { if (map.hasLayer(line)) map.removeLayer(line); }
+      });
+      document.getElementById('visibleCount').textContent = `${visible.length} of ${markers.length} pins visible`;
+      if (visible.length) { map.fitBounds(L.featureGroup(visible).getBounds().pad(0.12)); }
+    }
+    function selectAll(type) { selected[type] = new Set([...new Set(places.map(p => type === 'category' ? p.category : p.dayGroup))]); syncBoxes(type); updateMap(); }
+    function clearAll(type) { selected[type] = new Set(); syncBoxes(type); updateMap(); }
+    function syncBoxes(type) { document.querySelectorAll(`input[data-type="${type}"]`).forEach(cb => cb.checked = selected[type].has(cb.dataset.value)); }
+    updateMap();
+  </script>
+</body>
+</html>
