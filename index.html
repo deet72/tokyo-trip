@@ -492,8 +492,8 @@
   <script>
     const dayGroups = [
       { key: "Thu 4 Jun", label: "Thu 4 Jun - overnight flight to Japan", color: "#64748b" },
-      { key: "Fri 5 Jun", label: "Fri 5 Jun - Tokyo arrival, Ginza + Shibuya", color: "#ef4444" },
-      { key: "Sat 6 Jun", label: "Sat 6 Jun - Harajuku, cats + Shinjuku", color: "#2563eb" },
+      { key: "Fri 5 Jun", label: "Fri 5 Jun - Tokyo arrival, Zojo-ji + Ginza", color: "#ef4444" },
+      { key: "Sat 6 Jun", label: "Sat 6 Jun - Harajuku, Shibuya + cats", color: "#2563eb" },
       { key: "Sun 7 Jun", label: "Sun 7 Jun - Mt Fuji day trip", color: "#16a34a" },
       { key: "Mon 8 Jun", label: "Mon 8 Jun - Asakusa + Akihabara", color: "#7c3aed" },
       { key: "Tue 9 Jun", label: "Tue 9 Jun - teamLab + Odaiba", color: "#f97316" },
@@ -599,6 +599,17 @@
         notes: "Very easy low-energy add-on near the Shiodome hotel if the first afternoon needs to stay light."
       },
       {
+        name: "Zojo-ji Temple",
+        dayGroups: ["Fri 5 Jun"],
+        dayLabel: "Fri 5 Jun",
+        status: "Planned highlight",
+        category: "Culture & heritage",
+        lat: 35.6581,
+        lng: 139.7486,
+        search: "Zojoji Temple 4-7-35 Shiba-koen Minato City Tokyo",
+        notes: "Very easy arrival-day temple stop from Shiodome, and great with the Tokyo Tower backdrop."
+      },
+      {
         name: "Ginza",
         dayGroups: ["Fri 5 Jun"],
         dayLabel: "Fri 5 Jun",
@@ -621,37 +632,59 @@
         notes: "Your cream-sandwich stop. It fits best on arrival day or as a detour if you loop back through central Tokyo."
       },
       {
-        name: "Shibuya Crossing",
+        name: "UNIQLO Ginza",
         dayGroups: ["Fri 5 Jun"],
         dayLabel: "Fri 5 Jun",
+        status: "Planned highlight",
+        category: "Shopping / city areas",
+        lat: 35.6708,
+        lng: 139.7637,
+        search: "UNIQLO Ginza 6-9-5 Ginza Chuo City Tokyo",
+        notes: "Makes perfect sense with your Ginza wander and is one of the biggest Uniqlo stores in Tokyo."
+      },
+      {
+        name: "Shibuya Crossing",
+        dayGroups: ["Sat 6 Jun"],
+        dayLabel: "Sat 6 Jun",
         status: "Planned highlight",
         category: "Shopping / city areas",
         lat: 35.6595,
         lng: 139.7005,
         search: "Shibuya Crossing Tokyo",
-        notes: "Classic first-night Tokyo hit and a good anchor for the rest of the evening."
+        notes: "Moved onto Saturday so your main Shibuya block sits together."
       },
       {
         name: "Shibuya Sky",
-        dayGroups: ["Fri 5 Jun"],
-        dayLabel: "Fri 5 Jun",
+        dayGroups: ["Sat 6 Jun"],
+        dayLabel: "Sat 6 Jun",
         status: "Planned highlight",
         category: "Views / scenic",
         lat: 35.6585,
         lng: 139.702,
         search: "Shibuya Sky Tokyo",
-        notes: "Best around sunset or after dark. Booking ahead is worth it."
+        notes: "Best around sunset or after dark. Booking ahead is worth it, especially now that this is your Saturday Shibuya block."
       },
       {
         name: "MEGA Don Quijote Shibuya",
-        dayGroups: ["Fri 5 Jun"],
-        dayLabel: "Fri 5 Jun",
+        dayGroups: ["Sat 6 Jun"],
+        dayLabel: "Sat 6 Jun",
         status: "Planned highlight",
         category: "Shopping / city areas",
         lat: 35.6605,
         lng: 139.6973,
         search: "MEGA Don Quijote Shibuya",
-        notes: "Good first-night snack, souvenir and general chaos stop."
+        notes: "Good Shibuya-night snack, souvenir and general chaos stop."
+      },
+      {
+        name: "Sweet Check",
+        dayGroups: ["Sat 6 Jun"],
+        dayLabel: "Sat 6 Jun",
+        status: "Planned highlight",
+        category: "Cafes & food",
+        lat: 35.6658,
+        lng: 139.7138,
+        search: "Sweet Check 3-18-5 Minami-Aoyama Minato-ku Tokyo",
+        notes: "Easy Omotesando / Aoyama stop to pair with Harajuku before you continue toward Shibuya."
       },
       {
         name: "Cafe Reissue",
@@ -762,6 +795,39 @@
         lng: 139.7965,
         search: "Nakamise Dori Asakusa Tokyo",
         notes: "Makes Senso-ji feel like a fuller half-day with snacks and souvenir browsing on the approach."
+      },
+      {
+        name: "Mochinyan-yaki",
+        dayGroups: ["Mon 8 Jun"],
+        dayLabel: "Mon 8 Jun",
+        status: "Planned highlight",
+        category: "Cafes & food",
+        lat: 35.7136,
+        lng: 139.7962,
+        search: "Mochinyan-yaki 2-3-25 Asakusa Taito City Tokyo",
+        notes: "Chewy cat-shaped pancake stop in Asakusa, easy to do while you are around Senso-ji and Nakamise."
+      },
+      {
+        name: "Tokyo Skytree",
+        dayGroups: ["Mon 8 Jun"],
+        dayLabel: "Mon 8 Jun",
+        status: "Planned highlight",
+        category: "Views / scenic",
+        lat: 35.7101,
+        lng: 139.8107,
+        search: "Tokyo Skytree",
+        notes: "Makes sense as the next east-Tokyo stop after Asakusa before heading onward."
+      },
+      {
+        name: "Ueno Zoo",
+        dayGroups: ["Mon 8 Jun"],
+        dayLabel: "Mon 8 Jun",
+        status: "Planned highlight",
+        category: "Culture & heritage",
+        lat: 35.7168,
+        lng: 139.7714,
+        search: "Ueno Zoological Gardens 9-83 Ueno Park Taito City Tokyo",
+        notes: "Good add-on if you want to keep Monday focused on the east side of Tokyo before Akihabara."
       },
       {
         name: "Akihabara",
@@ -1170,11 +1236,11 @@
           "Haneda Airport arrival",
           "Hotel Villa Fontaine Grand Tokyo-Shiodome",
           "Hamarikyu Gardens",
+          "Zojo-ji Temple",
           "Ginza",
+          "UNIQLO Ginza",
           "Age.3 Ginza",
-          "Shibuya Crossing",
-          "Shibuya Sky",
-          "MEGA Don Quijote Shibuya"
+          "Hotel Villa Fontaine Grand Tokyo-Shiodome"
         ]
       },
       {
@@ -1183,11 +1249,14 @@
         color: dayMeta["Sat 6 Jun"].color,
         names: [
           "Hotel Villa Fontaine Grand Tokyo-Shiodome",
+          "Sweet Check",
           "Cafe Reissue",
           "Takeshita Street / Harajuku",
           "Cat Cafe MoCHA Harajuku",
-          "Meiji Shrine",
           "Gotokuji Temple",
+          "Shibuya Crossing",
+          "Shibuya Sky",
+          "MEGA Don Quijote Shibuya",
           "BAM BI COFFEE",
           "Omoide Yokocho / Golden Gai"
         ]
@@ -1209,10 +1278,12 @@
         names: [
           "Hotel Villa Fontaine Grand Tokyo-Shiodome",
           "Senso-ji Temple",
+          "Mochinyan-yaki",
           "Nakamise-dori",
+          "Tokyo Skytree",
+          "Ueno Zoo",
           "Akihabara",
           "Tokyo Station / Character Street",
-          "Age.3 Ginza",
           "Hotel Villa Fontaine Grand Tokyo-Shiodome"
         ]
       },
