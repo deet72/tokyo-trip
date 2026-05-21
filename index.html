@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Japan Trip Map - 4-22 June 2026</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
@@ -27,8 +27,15 @@
       color: var(--text-main);
     }
 
+    body {
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
     #map {
       height: 100%;
+      height: 100vh;
+      height: 100dvh;
       width: 100%;
     }
 
@@ -47,6 +54,31 @@
       box-shadow: var(--shadow);
       backdrop-filter: blur(12px);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .panel-handle {
+      display: none;
+      width: 52px;
+      height: 5px;
+      border-radius: 999px;
+      background: #d6e1ea;
+      margin: 0 auto;
+      flex: 0 0 auto;
+    }
+
+    .panel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .panel-heading {
+      min-width: 0;
     }
 
     .panel h1 {
@@ -94,7 +126,7 @@
       color: #6c4d10;
       font-size: 12px;
       line-height: 1.45;
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
 
     .button-row {
@@ -113,6 +145,9 @@
       color: var(--text-main);
       cursor: pointer;
       transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+      min-height: 38px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     button:hover {
@@ -125,6 +160,7 @@
       max-height: calc(100vh - 300px);
       overflow: auto;
       padding-right: 4px;
+      overscroll-behavior: contain;
     }
 
     .filters {
@@ -186,9 +222,22 @@
     }
 
     .count {
-      margin-top: 12px;
+      margin-top: 0;
       font-size: 12px;
       color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    .panel-toggle {
+      display: none;
+      flex: 0 0 auto;
+      font-weight: 600;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 12px;
+      min-height: 0;
     }
 
     .leaflet-popup-content {
@@ -245,13 +294,100 @@
     @media (max-width: 720px) {
       .panel {
         top: auto;
-        bottom: 12px;
-        width: calc(100vw - 24px);
-        max-height: 52vh;
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        width: auto;
+        max-width: none;
+        max-height: min(78dvh, calc(100dvh - 24px - env(safe-area-inset-bottom, 0px)));
+        border-radius: 24px;
+        gap: 10px;
+        padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .panel-handle {
+        display: block;
+      }
+
+      .panel-top {
+        gap: 10px;
+      }
+
+      .panel h1 {
+        margin-bottom: 4px;
+        font-size: 18px;
+      }
+
+      .panel p {
+        font-size: 12px;
+      }
+
+      .panel-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding-inline: 12px;
+      }
+
+      .summary,
+      .button-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-bottom: 0;
+        scrollbar-width: none;
+      }
+
+      .summary::-webkit-scrollbar,
+      .button-row::-webkit-scrollbar {
+        display: none;
+      }
+
+      .pill,
+      .button-row button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      button {
+        padding: 9px 12px;
+        font-size: 13px;
+      }
+
+      .filter-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-actions {
+        gap: 6px;
+      }
+
+      .filter-actions button {
+        min-height: 34px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      label {
+        font-size: 13px;
+        padding: 4px 0;
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
       }
 
       .panel-scroll {
-        max-height: calc(52vh - 220px);
+        max-height: min(40dvh, calc(100dvh - 270px));
+        padding-right: 0;
+      }
+
+      .panel[data-collapsed="true"] .panel-heading p,
+      .panel[data-collapsed="true"] .panel-body {
+        display: none;
       }
     }
   </style>
@@ -259,12 +395,21 @@
 <body>
   <div id="map"></div>
 
-  <aside class="panel">
-    <h1>Japan Trip Map - 4-22 June 2026</h1>
-    <p>
-      Overnight flight into Haneda, five nights in Tokyo, then Kyoto, Osaka, Hiroshima,
-      and a final Tokyo stay before flying home on Monday 22 June 2026.
-    </p>
+  <aside class="panel" id="controlPanel" data-collapsed="false">
+    <div class="panel-handle" aria-hidden="true"></div>
+
+    <div class="panel-top">
+      <div class="panel-heading">
+        <h1>Japan Trip Map - 4-22 June 2026</h1>
+        <p>
+          Overnight flight into Haneda, five nights in Tokyo, then Kyoto, Osaka, Hiroshima,
+          and a final Tokyo stay before flying home on Monday 22 June 2026.
+        </p>
+      </div>
+      <button id="panelToggle" class="panel-toggle" type="button" aria-controls="panelBody" aria-expanded="true" onclick="togglePanel()">
+        <span id="panelToggleText">Hide filters</span>
+      </button>
+    </div>
 
     <div class="summary">
       <span class="pill">Tokyo 1: 5-10 Jun</span>
@@ -274,63 +419,65 @@
       <span class="pill">Tokyo 2: 18-22 Jun</span>
     </div>
 
-    <div class="note">
-      Suggested extras are toggleable. The only remaining approximate pin is the "Cat On" coffee-place match.
-    </div>
+    <div class="count" id="visibleCount"></div>
 
-    <div class="button-row">
-      <button onclick="showEverything()">Show everything</button>
-      <button onclick="showBookedOnly()">Only fixed items</button>
-      <button onclick="hideSuggestions()">Hide suggestions</button>
-    </div>
+    <div class="panel-body" id="panelBody">
+      <div class="note">
+        Suggested extras are toggleable. The only remaining approximate pin is the "Cat On" coffee-place match.
+      </div>
 
-    <div class="button-row">
-      <button onclick="focusStage('All trip')">All trip</button>
-      <button onclick="focusStage('Tokyo start')">Tokyo start</button>
-      <button onclick="focusStage('Kyoto')">Kyoto</button>
-      <button onclick="focusStage('Osaka')">Osaka</button>
-      <button onclick="focusStage('Hiroshima')">Hiroshima</button>
-      <button onclick="focusStage('Tokyo finish')">Tokyo finish</button>
-    </div>
+      <div class="button-row">
+        <button onclick="showEverything()">Show everything</button>
+        <button onclick="showBookedOnly()">Only fixed items</button>
+        <button onclick="hideSuggestions()">Hide suggestions</button>
+      </div>
 
-    <div class="panel-scroll">
-      <div class="filters">
-        <div class="filter-block">
-          <div class="filter-head">
-            <div class="filter-title">Trip status</div>
-            <div class="filter-actions">
-              <button onclick="selectAll('status')">All</button>
-              <button onclick="clearAll('status')">None</button>
+      <div class="button-row">
+        <button onclick="focusStage('All trip')">All trip</button>
+        <button onclick="focusStage('Tokyo start')">Tokyo start</button>
+        <button onclick="focusStage('Kyoto')">Kyoto</button>
+        <button onclick="focusStage('Osaka')">Osaka</button>
+        <button onclick="focusStage('Hiroshima')">Hiroshima</button>
+        <button onclick="focusStage('Tokyo finish')">Tokyo finish</button>
+      </div>
+
+      <div class="panel-scroll">
+        <div class="filters">
+          <div class="filter-block">
+            <div class="filter-head">
+              <div class="filter-title">Trip status</div>
+              <div class="filter-actions">
+                <button onclick="selectAll('status')">All</button>
+                <button onclick="clearAll('status')">None</button>
+              </div>
             </div>
+            <div id="statusFilters"></div>
           </div>
-          <div id="statusFilters"></div>
-        </div>
 
-        <div class="filter-block">
-          <div class="filter-head">
-            <div class="filter-title">Categories</div>
-            <div class="filter-actions">
-              <button onclick="selectAll('category')">All</button>
-              <button onclick="clearAll('category')">None</button>
+          <div class="filter-block">
+            <div class="filter-head">
+              <div class="filter-title">Categories</div>
+              <div class="filter-actions">
+                <button onclick="selectAll('category')">All</button>
+                <button onclick="clearAll('category')">None</button>
+              </div>
             </div>
+            <div id="categoryFilters"></div>
           </div>
-          <div id="categoryFilters"></div>
-        </div>
 
-        <div class="filter-block">
-          <div class="filter-head">
-            <div class="filter-title">Dates and travel legs</div>
-            <div class="filter-actions">
-              <button onclick="selectAll('day')">All</button>
-              <button onclick="clearAll('day')">None</button>
+          <div class="filter-block">
+            <div class="filter-head">
+              <div class="filter-title">Dates and travel legs</div>
+              <div class="filter-actions">
+                <button onclick="selectAll('day')">All</button>
+                <button onclick="clearAll('day')">None</button>
+              </div>
             </div>
+            <div id="dayFilters"></div>
           </div>
-          <div id="dayFilters"></div>
         </div>
       </div>
     </div>
-
-    <div class="count" id="visibleCount"></div>
   </aside>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1298,6 +1445,65 @@
       day: new Set(filterValues.day)
     };
 
+    const controlPanel = document.getElementById("controlPanel");
+    const panelToggle = document.getElementById("panelToggle");
+    const panelToggleText = document.getElementById("panelToggleText");
+    const mobilePanelQuery = window.matchMedia("(max-width: 720px)");
+    let previousMobileState = mobilePanelQuery.matches;
+
+    function isMobileView() {
+      return mobilePanelQuery.matches;
+    }
+
+    function setPanelCollapsed(collapsed, refit = true) {
+      const shouldCollapse = isMobileView() ? collapsed : false;
+      controlPanel.dataset.collapsed = shouldCollapse ? "true" : "false";
+      panelToggle.setAttribute("aria-expanded", shouldCollapse ? "false" : "true");
+      panelToggleText.textContent = shouldCollapse ? "Show filters" : "Hide filters";
+
+      if (refit) {
+        requestAnimationFrame(() => {
+          map.invalidateSize();
+          updateMap();
+        });
+      }
+    }
+
+    function togglePanel() {
+      if (!isMobileView()) return;
+      setPanelCollapsed(controlPanel.dataset.collapsed !== "true");
+    }
+
+    function getFitBoundsPadding() {
+      const rect = controlPanel.getBoundingClientRect();
+      const edgePadding = 22;
+
+      if (isMobileView()) {
+        const bottomPadding = Math.max(Math.round(rect.height) + 18, 120);
+        return {
+          paddingTopLeft: [edgePadding, edgePadding],
+          paddingBottomRight: [edgePadding, bottomPadding]
+        };
+      }
+
+      const leftPadding = Math.max(Math.round(rect.width) + 28, 150);
+      return {
+        paddingTopLeft: [leftPadding, edgePadding],
+        paddingBottomRight: [edgePadding, edgePadding]
+      };
+    }
+
+    function handleViewportResize() {
+      const mobileNow = isMobileView();
+      if (mobileNow !== previousMobileState) {
+        previousMobileState = mobileNow;
+        setPanelCollapsed(mobileNow);
+        return;
+      }
+
+      map.invalidateSize();
+    }
+
     function filterLabel(type, value) {
       if (type === "day") return dayMeta[value].label;
       return value;
@@ -1422,10 +1628,12 @@
       const layersForBounds = [...visibleMarkers, ...visibleRoutes];
       if (layersForBounds.length) {
         const bounds = L.featureGroup(layersForBounds).getBounds();
-        if (bounds.isValid()) map.fitBounds(bounds.pad(0.12));
+        if (bounds.isValid()) map.fitBounds(bounds, getFitBoundsPadding());
       }
     }
 
+    window.addEventListener("resize", handleViewportResize);
+    setPanelCollapsed(previousMobileState, false);
     updateMap();
   </script>
 </body>
