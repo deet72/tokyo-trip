@@ -53,11 +53,27 @@
       border: 1px solid var(--panel-border);
       box-shadow: var(--shadow);
       backdrop-filter: blur(12px);
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       display: flex;
       flex-direction: column;
       gap: 12px;
       padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      transition: width 0.18s ease, max-height 0.18s ease, padding 0.18s ease, gap 0.18s ease;
+    }
+
+    .panel[data-collapsed="true"] {
+      width: min(300px, calc(100vw - 32px));
+      max-height: none;
+      gap: 8px;
+    }
+
+    .panel[data-collapsed="true"] .panel-heading p,
+    .panel[data-collapsed="true"] .summary,
+    .panel[data-collapsed="true"] .count,
+    .panel[data-collapsed="true"] .panel-body {
+      display: none;
     }
 
     .panel-handle {
@@ -157,10 +173,9 @@
     }
 
     .panel-scroll {
-      max-height: calc(100vh - 300px);
-      overflow: auto;
-      padding-right: 4px;
-      overscroll-behavior: contain;
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
     }
 
     .filters {
@@ -229,7 +244,9 @@
     }
 
     .panel-toggle {
-      display: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       flex: 0 0 auto;
       font-weight: 600;
     }
@@ -323,9 +340,6 @@
       }
 
       .panel-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
         min-height: 40px;
         padding-inline: 12px;
       }
@@ -380,14 +394,8 @@
         height: 18px;
       }
 
-      .panel-scroll {
-        max-height: min(40dvh, calc(100dvh - 270px));
-        padding-right: 0;
-      }
-
-      .panel[data-collapsed="true"] .panel-heading p,
-      .panel[data-collapsed="true"] .panel-body {
-        display: none;
+      .panel[data-collapsed="true"] {
+        width: auto;
       }
     }
   </style>
@@ -1449,17 +1457,26 @@
     const panelToggle = document.getElementById("panelToggle");
     const panelToggleText = document.getElementById("panelToggleText");
     const mobilePanelQuery = window.matchMedia("(max-width: 720px)");
+    let desktopPanelCollapsed = false;
+    let mobilePanelCollapsed = true;
     let previousMobileState = mobilePanelQuery.matches;
 
     function isMobileView() {
       return mobilePanelQuery.matches;
     }
 
+    function panelToggleLabel(collapsed) {
+      if (isMobileView()) return collapsed ? "Show sidebar" : "Hide sidebar";
+      return collapsed ? "Expand sidebar" : "Collapse sidebar";
+    }
+
     function setPanelCollapsed(collapsed, refit = true) {
-      const shouldCollapse = isMobileView() ? collapsed : false;
-      controlPanel.dataset.collapsed = shouldCollapse ? "true" : "false";
-      panelToggle.setAttribute("aria-expanded", shouldCollapse ? "false" : "true");
-      panelToggleText.textContent = shouldCollapse ? "Show filters" : "Hide filters";
+      if (isMobileView()) mobilePanelCollapsed = collapsed;
+      else desktopPanelCollapsed = collapsed;
+
+      controlPanel.dataset.collapsed = collapsed ? "true" : "false";
+      panelToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      panelToggleText.textContent = panelToggleLabel(collapsed);
 
       if (refit) {
         requestAnimationFrame(() => {
@@ -1470,7 +1487,6 @@
     }
 
     function togglePanel() {
-      if (!isMobileView()) return;
       setPanelCollapsed(controlPanel.dataset.collapsed !== "true");
     }
 
@@ -1497,11 +1513,15 @@
       const mobileNow = isMobileView();
       if (mobileNow !== previousMobileState) {
         previousMobileState = mobileNow;
-        setPanelCollapsed(mobileNow);
+        setPanelCollapsed(mobileNow ? mobilePanelCollapsed : desktopPanelCollapsed);
         return;
       }
 
-      map.invalidateSize();
+      panelToggleText.textContent = panelToggleLabel(controlPanel.dataset.collapsed === "true");
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        updateMap();
+      });
     }
 
     function filterLabel(type, value) {
@@ -1633,7 +1653,7 @@
     }
 
     window.addEventListener("resize", handleViewportResize);
-    setPanelCollapsed(previousMobileState, false);
+    setPanelCollapsed(previousMobileState ? mobilePanelCollapsed : desktopPanelCollapsed, false);
     updateMap();
   </script>
 </body>
