@@ -335,6 +335,102 @@
       color: var(--text-main);
     }
 
+    .editor-subsection {
+      border-top: 1px solid #e6edf2;
+      padding-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .segmented-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .segmented-row button[data-active="true"] {
+      background: #dff3ef;
+      border-color: #95d6c9;
+      color: #0d5547;
+      font-weight: 700;
+    }
+
+    .structured-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .structured-form[hidden] {
+      display: none;
+    }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .editor-field {
+      display: grid;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .editor-field-wide {
+      grid-column: 1 / -1;
+    }
+
+    .editor-field label {
+      display: block;
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .editor-select,
+    .editor-input,
+    .editor-multiline {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #d8e0ea;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 10px 12px;
+      font: inherit;
+      color: var(--text-main);
+    }
+
+    .editor-multiline {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    .day-picks {
+      display: grid;
+      gap: 6px;
+      padding: 10px 12px;
+      border: 1px solid #d8e0ea;
+      border-radius: 12px;
+      background: #ffffff;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .day-picks label {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .mini-note {
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--text-soft);
+      margin: 0;
+    }
+
     .panel-toggle {
       display: inline-flex;
       align-items: center;
@@ -513,6 +609,10 @@
         min-height: 240px;
       }
 
+      .editor-grid {
+        grid-template-columns: 1fr;
+      }
+
       label {
         font-size: 13px;
         padding: 4px 0;
@@ -587,9 +687,174 @@
         </div>
         <div class="editor-panel" id="editorPanel" data-open="false">
           <p class="editor-copy">
-            Edit the trip JSON here, preview it on the map, then save it to Supabase once it looks right.
+            Use the structured forms for common trip updates like hotels, activities, and places. The raw JSON editor stays
+            available below for advanced changes like route rewiring.
           </p>
-          <textarea id="tripJsonEditor" class="editor-textarea" spellcheck="false"></textarea>
+          <div class="editor-subsection">
+            <div class="filter-title">Structured add forms</div>
+            <div class="segmented-row" id="editorModeButtons">
+              <button type="button" data-mode="hotel" data-active="true" onclick="setEditorMode('hotel')">Hotel / stay</button>
+              <button type="button" data-mode="activity" data-active="false" onclick="setEditorMode('activity')">Activity</button>
+              <button type="button" data-mode="place" data-active="false" onclick="setEditorMode('place')">General place</button>
+              <button type="button" data-mode="json" data-active="false" onclick="setEditorMode('json')">Advanced JSON</button>
+            </div>
+
+            <form id="hotelForm" class="structured-form">
+              <div class="editor-grid">
+                <div class="editor-field">
+                  <label for="hotelName">Hotel name</label>
+                  <input id="hotelName" class="editor-input" type="text" placeholder="Hilton Sarajevo" />
+                </div>
+                <div class="editor-field">
+                  <label for="hotelStatus">Booking status</label>
+                  <select id="hotelStatus" class="editor-select">
+                    <option>Booked / fixed</option>
+                    <option>Planned explore</option>
+                  </select>
+                </div>
+                <div class="editor-field editor-field-wide">
+                  <label>Trip days for this stay</label>
+                  <div id="hotelDayChoices" class="day-picks"></div>
+                  <p class="mini-note">Pick every day this hotel or stay should appear on the map.</p>
+                </div>
+                <div class="editor-field">
+                  <label for="hotelDayLabel">Pin label override</label>
+                  <input id="hotelDayLabel" class="editor-input" type="text" placeholder="Optional, otherwise auto-generated" />
+                </div>
+                <div class="editor-field">
+                  <label for="hotelSearch">Google Maps search</label>
+                  <input id="hotelSearch" class="editor-input" type="text" placeholder="Hotel address or search phrase" />
+                </div>
+                <div class="editor-field">
+                  <label for="hotelLat">Latitude</label>
+                  <input id="hotelLat" class="editor-input" type="number" step="any" placeholder="42.1234" />
+                </div>
+                <div class="editor-field">
+                  <label for="hotelLng">Longitude</label>
+                  <input id="hotelLng" class="editor-input" type="number" step="any" placeholder="18.5678" />
+                </div>
+                <div class="editor-field editor-field-wide">
+                  <label for="hotelNotes">Notes</label>
+                  <textarea id="hotelNotes" class="editor-multiline" placeholder="Hotel name, check-in note, neighborhood, arrival detail..."></textarea>
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" onclick="addStructuredPlace('hotel')">Add hotel / stay</button>
+              </div>
+            </form>
+
+            <form id="activityForm" class="structured-form" hidden>
+              <div class="editor-grid">
+                <div class="editor-field">
+                  <label for="activityName">Activity name</label>
+                  <input id="activityName" class="editor-input" type="text" placeholder="Dubrovnik Cable Car" />
+                </div>
+                <div class="editor-field">
+                  <label for="activityStatus">Status</label>
+                  <select id="activityStatus" class="editor-select">
+                    <option>Planned explore</option>
+                    <option>Booked / fixed</option>
+                    <option>Possible transfer</option>
+                  </select>
+                </div>
+                <div class="editor-field">
+                  <label for="activityCategory">Map category</label>
+                  <select id="activityCategory" class="editor-select">
+                    <option>Scenic sights</option>
+                    <option>City bases & old towns</option>
+                  </select>
+                </div>
+                <div class="editor-field">
+                  <label for="activitySearch">Google Maps search</label>
+                  <input id="activitySearch" class="editor-input" type="text" placeholder="Activity address or search phrase" />
+                </div>
+                <div class="editor-field editor-field-wide">
+                  <label>Trip days for this activity</label>
+                  <div id="activityDayChoices" class="day-picks"></div>
+                </div>
+                <div class="editor-field">
+                  <label for="activityDayLabel">Pin label override</label>
+                  <input id="activityDayLabel" class="editor-input" type="text" placeholder="Optional, otherwise auto-generated" />
+                </div>
+                <div class="editor-field">
+                  <label for="activitySuggestions">Nearby ideas</label>
+                  <textarea id="activitySuggestions" class="editor-multiline" placeholder="Optional, one idea per line"></textarea>
+                </div>
+                <div class="editor-field">
+                  <label for="activityLat">Latitude</label>
+                  <input id="activityLat" class="editor-input" type="number" step="any" placeholder="42.1234" />
+                </div>
+                <div class="editor-field">
+                  <label for="activityLng">Longitude</label>
+                  <input id="activityLng" class="editor-input" type="number" step="any" placeholder="18.5678" />
+                </div>
+                <div class="editor-field editor-field-wide">
+                  <label for="activityNotes">Notes</label>
+                  <textarea id="activityNotes" class="editor-multiline" placeholder="Booking time, why it matters, or how it fits the day..."></textarea>
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" onclick="addStructuredPlace('activity')">Add activity</button>
+              </div>
+            </form>
+
+            <form id="placeForm" class="structured-form" hidden>
+              <div class="editor-grid">
+                <div class="editor-field">
+                  <label for="placeName">Place name</label>
+                  <input id="placeName" class="editor-input" type="text" placeholder="Kotor bus station" />
+                </div>
+                <div class="editor-field">
+                  <label for="placeStatus">Status</label>
+                  <select id="placeStatus" class="editor-select">
+                    <option>Planned explore</option>
+                    <option>Booked / fixed</option>
+                    <option>Possible transfer</option>
+                  </select>
+                </div>
+                <div class="editor-field">
+                  <label for="placeCategory">Map category</label>
+                  <select id="placeCategory" class="editor-select"></select>
+                </div>
+                <div class="editor-field">
+                  <label for="placeSearch">Google Maps search</label>
+                  <input id="placeSearch" class="editor-input" type="text" placeholder="Address or search phrase" />
+                </div>
+                <div class="editor-field editor-field-wide">
+                  <label>Trip days for this place</label>
+                  <div id="placeDayChoices" class="day-picks"></div>
+                </div>
+                <div class="editor-field">
+                  <label for="placeDayLabel">Pin label override</label>
+                  <input id="placeDayLabel" class="editor-input" type="text" placeholder="Optional, otherwise auto-generated" />
+                </div>
+                <div class="editor-field">
+                  <label for="placeSuggestions">Nearby ideas</label>
+                  <textarea id="placeSuggestions" class="editor-multiline" placeholder="Optional, one idea per line"></textarea>
+                </div>
+                <div class="editor-field">
+                  <label for="placeLat">Latitude</label>
+                  <input id="placeLat" class="editor-input" type="number" step="any" placeholder="42.1234" />
+                </div>
+                <div class="editor-field">
+                  <label for="placeLng">Longitude</label>
+                  <input id="placeLng" class="editor-input" type="number" step="any" placeholder="18.5678" />
+                </div>
+                <div class="editor-field editor-field-wide">
+                  <label for="placeNotes">Notes</label>
+                  <textarea id="placeNotes" class="editor-multiline" placeholder="General note for this stop..."></textarea>
+                </div>
+              </div>
+              <div class="button-row">
+                <button type="button" onclick="addStructuredPlace('place')">Add general place</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="editor-subsection">
+            <div class="filter-title">Advanced JSON</div>
+            <textarea id="tripJsonEditor" class="editor-textarea" spellcheck="false"></textarea>
+          </div>
           <div class="button-row">
             <button type="button" onclick="restoreSavedTrip()">Restore saved trip</button>
             <button type="button" onclick="previewEditorChanges()">Preview locally</button>
@@ -696,6 +961,7 @@
     const categoryOrder = [
       "Flights & airports",
       "Stations & terminals",
+      "Hotels & stays",
       "City bases & old towns",
       "Scenic sights"
     ];
@@ -703,6 +969,7 @@
     const categoryColors = {
       "Flights & airports": "#0f172a",
       "Stations & terminals": "#475569",
+      "Hotels & stays": "#0f766e",
       "City bases & old towns": "#ef4444",
       "Scenic sights": "#0891b2"
     };
@@ -1362,6 +1629,10 @@
       rebuildDerivedState();
       reconcileSelections(resetFilters);
       renderFilters();
+      renderDayChoices("hotelDayChoices");
+      renderDayChoices("activityDayChoices");
+      renderDayChoices("placeDayChoices");
+      populatePlaceCategoryOptions();
       rebuildMapLayers();
 
       sourceLabel = source;
@@ -1382,6 +1653,10 @@
     const editorStatus = document.getElementById("editorStatus");
     const editorPanel = document.getElementById("editorPanel");
     const tripJsonEditor = document.getElementById("tripJsonEditor");
+    const hotelForm = document.getElementById("hotelForm");
+    const activityForm = document.getElementById("activityForm");
+    const placeForm = document.getElementById("placeForm");
+    const placeCategory = document.getElementById("placeCategory");
     const authRow = document.getElementById("authRow");
     const authEmail = document.getElementById("authEmail");
     const openEditorButton = document.getElementById("openEditorButton");
@@ -1392,6 +1667,7 @@
     let desktopPanelCollapsed = false;
     let mobilePanelCollapsed = true;
     let previousMobileState = mobilePanelQuery.matches;
+    let editorMode = "hotel";
 
     function persistedSourceText() {
       return tripRecordId ? "Live from Supabase" : "Bundled fallback data";
@@ -1400,6 +1676,218 @@
     function setStatusLine(element, message, tone = "warning") {
       element.textContent = message;
       element.dataset.tone = tone;
+    }
+
+    function toSentenceCaseLabel(dayKeys) {
+      if (!dayKeys.length) return "";
+      if (dayKeys.length === 1) return dayKeys[0];
+      return `${dayKeys[0]}-${dayKeys[dayKeys.length - 1]}`;
+    }
+
+    function splitSuggestions(value) {
+      return value
+        .split("\n")
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    function renderDayChoices(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+
+      dayOrder.forEach(dayKey => {
+        const label = document.createElement("label");
+        label.innerHTML = `
+          <input type="checkbox" value="${escapeHtml(dayKey)}">
+          ${escapeHtml(dayMeta[dayKey]?.label || dayKey)}
+        `;
+        container.appendChild(label);
+      });
+    }
+
+    function getCheckedDays(containerId) {
+      return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`))
+        .map(box => box.value);
+    }
+
+    function populatePlaceCategoryOptions() {
+      placeCategory.innerHTML = "";
+      categoryOrder.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        placeCategory.appendChild(option);
+      });
+      placeCategory.value = "City bases & old towns";
+    }
+
+    function setEditorMode(mode) {
+      editorMode = mode;
+      hotelForm.hidden = mode !== "hotel";
+      activityForm.hidden = mode !== "activity";
+      placeForm.hidden = mode !== "place";
+      tripJsonEditor.closest(".editor-subsection").hidden = mode !== "json";
+
+      document.querySelectorAll("#editorModeButtons button").forEach(button => {
+        button.dataset.active = button.dataset.mode === mode ? "true" : "false";
+      });
+
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        updateMap();
+      });
+    }
+
+    function resetStructuredForm(kind) {
+      const fieldGroups = {
+        hotel: ["hotelName", "hotelDayLabel", "hotelSearch", "hotelLat", "hotelLng", "hotelNotes"],
+        activity: ["activityName", "activityDayLabel", "activitySearch", "activityLat", "activityLng", "activityNotes", "activitySuggestions"],
+        place: ["placeName", "placeDayLabel", "placeSearch", "placeLat", "placeLng", "placeNotes", "placeSuggestions"]
+      };
+
+      (fieldGroups[kind] || []).forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = "";
+      });
+
+      const selectDefaults = {
+        hotelStatus: "Booked / fixed",
+        activityStatus: "Planned explore",
+        activityCategory: "Scenic sights",
+        placeStatus: "Planned explore",
+        placeCategory: "City bases & old towns"
+      };
+
+      const selectIdsByKind = {
+        hotel: ["hotelStatus"],
+        activity: ["activityStatus", "activityCategory"],
+        place: ["placeStatus", "placeCategory"]
+      };
+
+      (selectIdsByKind[kind] || []).forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = selectDefaults[id];
+      });
+
+      const dayContainers = {
+        hotel: "hotelDayChoices",
+        activity: "activityDayChoices",
+        place: "placeDayChoices"
+      };
+      document.querySelectorAll(`#${dayContainers[kind]} input[type="checkbox"]`).forEach(box => {
+        box.checked = false;
+      });
+    }
+
+    function addStructuredPlace(kind) {
+      const definitions = {
+        hotel: {
+          nameId: "hotelName",
+          statusId: "hotelStatus",
+          category: "Hotels & stays",
+          searchId: "hotelSearch",
+          dayId: "hotelDayChoices",
+          dayLabelId: "hotelDayLabel",
+          latId: "hotelLat",
+          lngId: "hotelLng",
+          notesId: "hotelNotes"
+        },
+        activity: {
+          nameId: "activityName",
+          statusId: "activityStatus",
+          categoryId: "activityCategory",
+          searchId: "activitySearch",
+          dayId: "activityDayChoices",
+          dayLabelId: "activityDayLabel",
+          latId: "activityLat",
+          lngId: "activityLng",
+          notesId: "activityNotes",
+          suggestionsId: "activitySuggestions"
+        },
+        place: {
+          nameId: "placeName",
+          statusId: "placeStatus",
+          categoryId: "placeCategory",
+          searchId: "placeSearch",
+          dayId: "placeDayChoices",
+          dayLabelId: "placeDayLabel",
+          latId: "placeLat",
+          lngId: "placeLng",
+          notesId: "placeNotes",
+          suggestionsId: "placeSuggestions"
+        }
+      };
+
+      const config = definitions[kind];
+      const name = document.getElementById(config.nameId).value.trim();
+      const search = document.getElementById(config.searchId).value.trim();
+      const dayGroupsValue = getCheckedDays(config.dayId);
+      const dayLabel = document.getElementById(config.dayLabelId).value.trim() || toSentenceCaseLabel(dayGroupsValue);
+      const lat = Number(document.getElementById(config.latId).value);
+      const lng = Number(document.getElementById(config.lngId).value);
+      const notes = document.getElementById(config.notesId).value.trim();
+      const status = document.getElementById(config.statusId).value;
+      const category = config.category || document.getElementById(config.categoryId).value;
+      const suggestions = config.suggestionsId
+        ? splitSuggestions(document.getElementById(config.suggestionsId).value)
+        : [];
+
+      if (!name) {
+        setStatusLine(editorStatus, "Add form: name is required.", "warning");
+        return;
+      }
+      if (!dayGroupsValue.length) {
+        setStatusLine(editorStatus, "Add form: choose at least one trip day.", "warning");
+        return;
+      }
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        setStatusLine(editorStatus, "Add form: latitude and longitude are required numbers.", "warning");
+        return;
+      }
+
+      const draft = currentTripData();
+      if (draft.places.some(place => place.name === name)) {
+        setStatusLine(editorStatus, "Add form: a place with that name already exists.", "warning");
+        return;
+      }
+
+      const newPlace = {
+        name,
+        dayGroups: dayGroupsValue,
+        dayLabel,
+        status,
+        category,
+        lat,
+        lng,
+        search: search || name,
+        notes: notes || `${name} added from the structured editor.`
+      };
+
+      if (suggestions.length) {
+        newPlace.suggestions = suggestions;
+      }
+
+      draft.places.push(newPlace);
+      draft.places.sort((a, b) => {
+        const aIndex = dayOrder.indexOf(a.dayGroups[0]);
+        const bIndex = dayOrder.indexOf(b.dayGroups[0]);
+        return aIndex - bIndex || a.name.localeCompare(b.name);
+      });
+
+      const errors = validateTripData(draft);
+      if (errors.length) {
+        setStatusLine(editorStatus, `Could not add this item yet: ${errors[0]}`, "warning");
+        return;
+      }
+
+      applyTripData(draft, {
+        resetFilters: false,
+        source: "Previewing unsaved changes",
+        syncEditor: true
+      });
+      resetStructuredForm(kind);
+      setStatusLine(editorStatus, `${name} was added to the preview. Save online when you're happy with it.`, "preview");
     }
 
     function isMobileView() {
@@ -1913,6 +2401,10 @@
       source: "Bundled fallback data",
       syncEditor: true
     });
+    setEditorMode(editorMode);
+    resetStructuredForm("hotel");
+    resetStructuredForm("activity");
+    resetStructuredForm("place");
     setPanelCollapsed(previousMobileState ? mobilePanelCollapsed : desktopPanelCollapsed, false);
     updateAuthUi();
     initializeSupabase();
