@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tokyo Trip Map — June 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #map { height: 100%; width: 100%; }
+    .panel { position: absolute; z-index: 1000; top: 12px; left: 12px; background: white; padding: 14px 16px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-width: 340px; line-height: 1.35; }
+    .panel h1 { font-size: 18px; margin: 0 0 6px; }
+    .panel p { font-size: 13px; margin: 6px 0; color: #444; }
+    .legend { margin-top: 8px; display: grid; gap: 4px; font-size: 13px; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+    .leaflet-popup-content { font-size: 14px; }
+    .popup-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .tag { display: inline-block; padding: 2px 6px; border-radius: 999px; background: #eee; font-size: 12px; margin-top: 4px; }
+    @media (max-width: 700px) { .panel { max-width: calc(100vw - 56px); font-size: 12px; } }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="panel">
+    <h1>Tokyo Trip Map — June 2026</h1>
+    <p>Pins are grouped by your planned itinerary areas. Use the layer button to toggle days/categories.</p>
+    <p><strong>Note:</strong> Hotel Villa Fontaine has several Tokyo branches, so I have not pinned it until the exact branch is confirmed.</p>
+    <div class="legend">
+      <div><span class="dot" style="background:#2d7ff9"></span>Booked / main plan</div>
+      <div><span class="dot" style="background:#f59e0b"></span>Cafés & food</div>
+      <div><span class="dot" style="background:#10b981"></span>Temples / scenic</div>
+      <div><span class="dot" style="background:#ef4444"></span>Shopping / night areas</div>
+      <div><span class="dot" style="background:#8b5cf6"></span>Extra recommendations</div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([35.6812, 139.7671], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    function markerIcon(color) {
+      return L.divIcon({
+        className: 'custom-pin',
+        html: `<div style="background:${color};width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 7px rgba(0,0,0,.35)"></div>`,
+        iconSize: [24,24], iconAnchor: [12,12], popupAnchor: [0,-10]
+      });
+    }
+
+    const colours = {
+      main: '#2d7ff9', food: '#f59e0b', scenic: '#10b981', shop: '#ef4444', extra: '#8b5cf6'
+    };
+
+    const groups = {
+      'Fri 5 Jun — Shibuya evening': L.layerGroup(),
+      'Sat 6 Jun — Harajuku / Gotokuji': L.layerGroup(),
+      'Sun 7 Jun — Mt Fuji meeting placeholder': L.layerGroup(),
+      'Mon 8 Jun — Asakusa / Ginza': L.layerGroup(),
+      'Tue 9 Jun — teamLab / Odaiba': L.layerGroup(),
+      'Extra recommendations': L.layerGroup(),
+      'Food & cafés': L.layerGroup(),
+      'Shopping / night areas': L.layerGroup()
+    };
+
+    const places = [
+      {name:'Shibuya Crossing', lat:35.6595, lng:139.7005, cat:'main', group:'Fri 5 Jun — Shibuya evening', note:'Iconic crossing; best at dusk/night.', search:'Shibuya Crossing Tokyo'},
+      {name:'Shibuya Sky', lat:35.6585, lng:139.7020, cat:'main', group:'Fri 5 Jun — Shibuya evening', note:'Book sunset/night slots early.', search:'Shibuya Sky Tokyo'},
+      {name:'MEGA Don Quijote Shibuya', lat:35.6607, lng:139.6977, cat:'shop', group:'Fri 5 Jun — Shibuya evening', note:'Great for souvenirs, snacks and late-night shopping.', search:'MEGA Don Quijote Shibuya'},
+      {name:'Cafe Reissue', lat:35.6696, lng:139.7074, cat:'food', group:'Sat 6 Jun — Harajuku / Gotokuji', note:'3D latte art café near Harajuku.', search:'Cafe Reissue Jingumae Shibuya Tokyo'},
+      {name:'Meiji Shrine', lat:35.6764, lng:139.6993, cat:'extra', group:'Sat 6 Jun — Harajuku / Gotokuji', note:'Peaceful stop to pair with Harajuku.', search:'Meiji Shrine Tokyo'},
+      {name:'Takeshita Street / Harajuku', lat:35.6716, lng:139.7030, cat:'shop', group:'Sat 6 Jun — Harajuku / Gotokuji', note:'Street food, character shops, fashion and crepes.', search:'Takeshita Street Harajuku Tokyo'},
+      {name:'Gotokuji Temple', lat:35.6539, lng:139.6470, cat:'scenic', group:'Sat 6 Jun — Harajuku / Gotokuji', note:'Famous lucky cat temple.', search:'Gotokuji Temple Tokyo'},
+      {name:'Mt Fuji day trip meeting point', lat:35.6896, lng:139.7006, cat:'main', group:'Sun 7 Jun — Mt Fuji meeting placeholder', note:'Placeholder near Shinjuku; replace with your exact tour meeting point.', search:'Mt Fuji tour meeting point Shinjuku Tokyo'},
+      {name:'Sensō-ji Temple', lat:35.7148, lng:139.7967, cat:'scenic', group:'Mon 8 Jun — Asakusa / Ginza', note:'Go early; then walk Nakamise-dori.', search:'Sensoji Temple Tokyo'},
+      {name:'Nakamise-dori', lat:35.7118, lng:139.7964, cat:'shop', group:'Mon 8 Jun — Asakusa / Ginza', note:'Souvenirs and snacks on the approach to Sensō-ji.', search:'Nakamise Dori Asakusa Tokyo'},
+      {name:'Age.3 Ginza', lat:35.6721, lng:139.7711, cat:'food', group:'Mon 8 Jun — Asakusa / Ginza', note:'Fried cream sandwich place at 1-24-11 Ginza.', search:'Age.3 Ginza 1-24-11'},
+      {name:'Tokyo Station / Character Street', lat:35.6812, lng:139.7671, cat:'extra', group:'Mon 8 Jun — Asakusa / Ginza', note:'Good add-on for character stores and Kyoto train prep.', search:'Tokyo Character Street Tokyo Station'},
+      {name:'teamLab Planets TOKYO', lat:35.6491, lng:139.7898, cat:'main', group:'Tue 9 Jun — teamLab / Odaiba', note:'Booked for Tue 9 June, 9:30am.', search:'teamLab Planets Tokyo'},
+      {name:'DiverCity Tokyo Plaza / Gundam', lat:35.6252, lng:139.7757, cat:'shop', group:'Tue 9 Jun — teamLab / Odaiba', note:'Good after teamLab: shops, arcades, giant Gundam.', search:'DiverCity Tokyo Plaza Gundam'},
+      {name:'Odaiba Seaside Park', lat:35.6300, lng:139.7755, cat:'extra', group:'Tue 9 Jun — teamLab / Odaiba', note:'Waterfront views, good for a slower afternoon.', search:'Odaiba Seaside Park Tokyo'},
+      {name:'BAM BI COFFEE', lat:35.6988, lng:139.7047, cat:'food', group:'Food & cafés', note:'Korean-style café/pancakes in Shin-Okubo.', search:'BAM BI COFFEE Okubo 1-14-26'},
+      {name:'Uobei Shibuya Dogenzaka', lat:35.6587, lng:139.6973, cat:'food', group:'Food & cafés', note:'Fun, affordable conveyor-belt-style sushi.', search:'Uobei Shibuya Dogenzaka Tokyo'},
+      {name:'Ichiran Shibuya', lat:35.6607, lng:139.7006, cat:'food', group:'Food & cafés', note:'Touristy but classic solo-booth ramen experience.', search:'Ichiran Shibuya Tokyo'},
+      {name:'Flipper’s / soufflé pancakes area', lat:35.6602, lng:139.7000, cat:'food', group:'Food & cafés', note:'Soufflé pancake option; check exact branch before going.', search:'Flippers pancakes Shibuya Tokyo'},
+      {name:'Akihabara', lat:35.6984, lng:139.7730, cat:'extra', group:'Extra recommendations', note:'Arcades, gachapon, electronics, anime/game shops.', search:'Akihabara Tokyo'},
+      {name:'Shinjuku / Kabukicho', lat:35.6950, lng:139.7020, cat:'shop', group:'Shopping / night areas', note:'Neon nightlife area; pair with Shin-Okubo/BAM BI.', search:'Kabukicho Shinjuku Tokyo'},
+      {name:'Omoide Yokocho', lat:35.6938, lng:139.6990, cat:'extra', group:'Extra recommendations', note:'Atmospheric tiny alley near Shinjuku Station.', search:'Omoide Yokocho Tokyo'},
+      {name:'Nintendo TOKYO / Pokémon Center Shibuya', lat:35.6618, lng:139.6995, cat:'extra', group:'Shopping / night areas', note:'Both are in/near Shibuya PARCO.', search:'Nintendo Tokyo Pokemon Center Shibuya'},
+      {name:'Cat café option — Shinjuku/Harajuku area', lat:35.6917, lng:139.7045, cat:'extra', group:'Extra recommendations', note:'Placeholder because “Cat On coffee place” was ambiguous. Replace once exact café is known.', search:'cat cafe Shinjuku Tokyo'}
+    ];
+
+    places.forEach(p => {
+      const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.search)}`;
+      const popup = `<div class="popup-title">${p.name}</div><div>${p.note}</div><div class="tag">${p.group}</div><br><a href="${directions}" target="_blank" rel="noopener">Open in Google Maps</a>`;
+      L.marker([p.lat, p.lng], {icon: markerIcon(colours[p.cat])}).bindPopup(popup).addTo(groups[p.group]);
+    });
+
+    Object.values(groups).forEach(g => g.addTo(map));
+    L.control.layers(null, groups, {collapsed:false}).addTo(map);
+
+    const allMarkers = [];
+    Object.values(groups).forEach(g => g.eachLayer(layer => allMarkers.push(layer)));
+    const featureGroup = L.featureGroup(allMarkers);
+    map.fitBounds(featureGroup.getBounds().pad(0.12));
+  </script>
+</body>
+</html>

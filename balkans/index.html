@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Balkans Trip Map - July 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      color-scheme: light;
+      --panel-bg: rgba(250, 249, 243, 0.96);
+      --panel-border: rgba(125, 150, 166, 0.26);
+      --text-main: #112234;
+      --text-soft: #495b6d;
+      --accent-soft: #dff3ef;
+      --button-bg: #f8fafc;
+      --button-hover: #e8f3ff;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(160deg, #d8edf2 0%, #eef3ed 52%, #f6efe2 100%);
+      color: var(--text-main);
+    }
+
+    body {
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
+    #map {
+      height: 100%;
+      height: 100vh;
+      height: 100dvh;
+      width: 100%;
+    }
+
+    .panel {
+      position: absolute;
+      z-index: 1000;
+      top: 12px;
+      left: 12px;
+      width: 390px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 24px);
+      padding: 16px 16px 14px;
+      border-radius: 20px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      transition: width 0.18s ease, max-height 0.18s ease, padding 0.18s ease, gap 0.18s ease;
+    }
+
+    .panel[data-collapsed="true"] {
+      width: min(300px, calc(100vw - 32px));
+      max-height: none;
+      gap: 8px;
+    }
+
+    .panel[data-collapsed="true"] .panel-heading p,
+    .panel[data-collapsed="true"] .summary,
+    .panel[data-collapsed="true"] .count,
+    .panel[data-collapsed="true"] .panel-body {
+      display: none;
+    }
+
+    .panel-handle {
+      display: none;
+      width: 52px;
+      height: 5px;
+      border-radius: 999px;
+      background: #d4e1ea;
+      margin: 0 auto;
+      flex: 0 0 auto;
+    }
+
+    .panel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .panel-heading {
+      min-width: 0;
+    }
+
+    .panel h1 {
+      margin: 0 0 8px;
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .panel p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--text-soft);
+    }
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 12px;
+    }
+
+    .pill,
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1.2;
+      background: #eef2f7;
+      color: var(--text-main);
+    }
+
+    .pill {
+      background: var(--accent-soft);
+      color: #0d5547;
+      font-weight: 600;
+    }
+
+    .note {
+      padding: 10px 11px;
+      border-radius: 14px;
+      background: #f8f1e6;
+      border: 1px solid #eadac0;
+      color: #6f4f16;
+      font-size: 12px;
+      line-height: 1.45;
+      margin-bottom: 0;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    button {
+      border: 1px solid #d8e0ea;
+      border-radius: 999px;
+      background: var(--button-bg);
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+      min-height: 38px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:hover {
+      background: var(--button-hover);
+      border-color: #c4d7eb;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .panel-scroll {
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
+    }
+
+    .filters {
+      display: grid;
+      gap: 12px;
+    }
+
+    .filter-block {
+      border-top: 1px solid #e6edf2;
+      padding-top: 10px;
+    }
+
+    .filter-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .filter-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .filter-actions {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .filter-actions button {
+      padding: 4px 7px;
+      font-size: 11px;
+    }
+
+    label {
+      display: block;
+      margin: 5px 0;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--text-soft);
+      cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 6px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    }
+
+    .count {
+      margin-top: 0;
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    .editor-card {
+      border: 1px solid #dde6ee;
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.66);
+      display: grid;
+      gap: 10px;
+    }
+
+    .editor-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .editor-copy {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text-soft);
+    }
+
+    .auth-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .auth-row[hidden] {
+      display: none;
+    }
+
+    .text-input {
+      flex: 1 1 200px;
+      min-height: 40px;
+      border-radius: 12px;
+      border: 1px solid #d8e0ea;
+      background: #ffffff;
+      padding: 10px 12px;
+      font: inherit;
+      color: var(--text-main);
+      box-sizing: border-box;
+    }
+
+    .status-line {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    .status-line[data-tone="live"] {
+      color: #0f766e;
+    }
+
+    .status-line[data-tone="preview"] {
+      color: #7c3aed;
+    }
+
+    .status-line[data-tone="warning"] {
+      color: #b45309;
+    }
+
+    .editor-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .editor-panel[data-open="false"] {
+      display: none;
+    }
+
+    .editor-textarea {
+      min-height: 280px;
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid #d8e0ea;
+      background: #ffffff;
+      padding: 12px;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--text-main);
+    }
+
+    .panel-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      font-weight: 600;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .leaflet-popup-content {
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .popup-title {
+      margin-bottom: 6px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .popup-tags {
+      margin-top: 8px;
+    }
+
+    .popup-tags .tag {
+      margin: 0 5px 5px 0;
+      background: #edf5ff;
+      color: #223f5f;
+    }
+
+    .popup-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #13576f;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .popup-link:hover {
+      text-decoration: underline;
+    }
+
+    .popup-section {
+      margin-top: 10px;
+    }
+
+    .popup-section-title {
+      margin-bottom: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #35516a;
+      text-transform: uppercase;
+    }
+
+    .popup-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-main);
+    }
+
+    .popup-list li {
+      margin: 0 0 4px;
+    }
+
+    .pin-outer {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.96);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.28);
+    }
+
+    .pin-inner {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    @media (max-width: 720px) {
+      .panel {
+        top: auto;
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        width: auto;
+        max-width: none;
+        max-height: min(78dvh, calc(100dvh - 24px - env(safe-area-inset-bottom, 0px)));
+        border-radius: 24px;
+        gap: 10px;
+        padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+      }
+
+      .panel-handle {
+        display: block;
+      }
+
+      .panel-top {
+        gap: 10px;
+      }
+
+      .panel h1 {
+        margin-bottom: 4px;
+        font-size: 18px;
+      }
+
+      .panel p {
+        font-size: 12px;
+      }
+
+      .panel-toggle {
+        min-height: 40px;
+        padding-inline: 12px;
+      }
+
+      .summary,
+      .button-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        margin-bottom: 0;
+        scrollbar-width: none;
+      }
+
+      .summary::-webkit-scrollbar,
+      .button-row::-webkit-scrollbar {
+        display: none;
+      }
+
+      .pill,
+      .button-row button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      button {
+        padding: 9px 12px;
+        font-size: 13px;
+      }
+
+      .filter-head {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-actions {
+        gap: 6px;
+      }
+
+      .filter-actions button {
+        min-height: 34px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .auth-row {
+        flex-direction: column;
+      }
+
+      .text-input,
+      .auth-row button,
+      .editor-card .button-row button {
+        width: 100%;
+      }
+
+      .editor-textarea {
+        min-height: 240px;
+      }
+
+      label {
+        font-size: 13px;
+        padding: 4px 0;
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+      }
+
+      .panel[data-collapsed="true"] {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <aside class="panel" id="controlPanel" data-collapsed="false">
+    <div class="panel-handle" aria-hidden="true"></div>
+
+    <div class="panel-top">
+      <div class="panel-heading">
+        <h1>Balkans Trip Map - 3-21 July 2026</h1>
+        <p>
+          Split to Sarajevo, Mostar, Dubrovnik, Kotor, Budva, Tirana and Ohrid,
+          then back to Tirana for the flight home.
+        </p>
+      </div>
+      <button id="panelToggle" class="panel-toggle" type="button" aria-controls="panelBody" aria-expanded="true" onclick="togglePanel()">
+        <span id="panelToggleText">Collapse sidebar</span>
+      </button>
+    </div>
+
+    <div class="summary">
+      <span class="pill">Croatia</span>
+      <span class="pill">Bosnia &amp; Herzegovina</span>
+      <span class="pill">Montenegro</span>
+      <span class="pill">Albania + Ohrid</span>
+    </div>
+
+    <div class="count" id="visibleCount"></div>
+
+    <div class="panel-body" id="panelBody">
+      <div class="note">
+        Ticketed bus legs are pinned from your screenshots. The Sarajevo to Mostar train on Wednesday 8 July is included
+        with time still to confirm, and the Kotor to Budva move on Tuesday 14 July is marked as a possible taxi transfer.
+        Open the main city pins for a few good ideas in each stop.
+      </div>
+
+      <div class="editor-card">
+        <div class="editor-head">
+          <div class="filter-title">Live trip editing</div>
+          <span class="tag" id="tripSourceTag">Bundled fallback data</span>
+        </div>
+        <p class="editor-copy">
+          The map can load its trip data from Supabase. Viewers can read it publicly, and only the signed-in owner can preview
+          changes and save them back online. A shared edit link can also unlock saving without sign-in.
+        </p>
+        <div class="auth-row" id="authRow">
+          <input id="authEmail" class="text-input" type="email" placeholder="Email for magic-link sign in" autocomplete="email" />
+          <button id="sendMagicLinkButton" type="button" onclick="sendMagicLink()">Email sign-in link</button>
+        </div>
+        <div class="button-row">
+          <button type="button" onclick="loadRemoteTrip()">Load live trip</button>
+          <button id="openEditorButton" type="button" onclick="toggleEditor()" disabled>Open editor</button>
+          <button id="signOutButton" type="button" onclick="signOutUser()" hidden>Sign out</button>
+        </div>
+        <div class="status-line" id="authStatus" data-tone="warning">
+          Public read-only mode. Sign in as the trip owner to edit and save.
+        </div>
+        <div class="editor-panel" id="editorPanel" data-open="false">
+          <p class="editor-copy">
+            Edit the trip JSON here, preview it on the map, then save it to Supabase once it looks right.
+          </p>
+          <textarea id="tripJsonEditor" class="editor-textarea" spellcheck="false"></textarea>
+          <div class="button-row">
+            <button type="button" onclick="restoreSavedTrip()">Restore saved trip</button>
+            <button type="button" onclick="previewEditorChanges()">Preview locally</button>
+            <button id="saveTripButton" type="button" onclick="saveEditorToSupabase()" disabled>Save online</button>
+          </div>
+          <div class="status-line" id="editorStatus">Editor is ready.</div>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button onclick="showEverything()">Show everything</button>
+        <button onclick="showBookedOnly()">Only fixed items</button>
+        <button onclick="showTravelOnly()">Only travel pins</button>
+      </div>
+
+      <div class="button-row">
+        <button onclick="focusStage('All trip')">All trip</button>
+        <button onclick="focusStage('Croatia')">Croatia</button>
+        <button onclick="focusStage('Bosnia')">Bosnia</button>
+        <button onclick="focusStage('Montenegro')">Montenegro</button>
+        <button onclick="focusStage('Albania + Ohrid')">Albania + Ohrid</button>
+      </div>
+
+      <div class="panel-scroll">
+        <div class="filters">
+          <div class="filter-block">
+            <div class="filter-head">
+              <div class="filter-title">Trip status</div>
+              <div class="filter-actions">
+                <button onclick="selectAll('status')">All</button>
+                <button onclick="clearAll('status')">None</button>
+              </div>
+            </div>
+            <div id="statusFilters"></div>
+          </div>
+
+          <div class="filter-block">
+            <div class="filter-head">
+              <div class="filter-title">Categories</div>
+              <div class="filter-actions">
+                <button onclick="selectAll('category')">All</button>
+                <button onclick="clearAll('category')">None</button>
+              </div>
+            </div>
+            <div id="categoryFilters"></div>
+          </div>
+
+          <div class="filter-block">
+            <div class="filter-head">
+              <div class="filter-title">Dates and travel legs</div>
+              <div class="filter-actions">
+                <button onclick="selectAll('day')">All</button>
+                <button onclick="clearAll('day')">None</button>
+              </div>
+            </div>
+            <div id="dayFilters"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://gcxhgbnjqduaudljzykn.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjeGhnYm5qcWR1YXVkbGp6eWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzE2MTQsImV4cCI6MjA5NTQ0NzYxNH0.9j9SKN3ttwr2MtJiOBH1RKNsRqVfkbb7BMBIguw3n7I";
+    const TRIP_OWNER_ID = "93a8c093-517d-4155-b2da-c73f40b5db4e";
+    const TRIP_SLUG = "balkans-2026";
+    const TRIP_TITLE = "Balkans Trip 2026";
+    const TRIP_EDIT_QUERY_PARAM = "edit";
+
+    const defaultDayGroups = [
+      { key: "Fri 3 Jul", label: "Fri 3 Jul - arrive in Split", color: "#ef4444" },
+      { key: "Sat 4 Jul", label: "Sat 4 Jul - Split", color: "#f97316" },
+      { key: "Sun 5 Jul", label: "Sun 5 Jul - Split", color: "#f59e0b" },
+      { key: "Mon 6 Jul", label: "Mon 6 Jul - Split to Sarajevo bus 13:30-19:50", color: "#16a34a" },
+      { key: "Tue 7 Jul", label: "Tue 7 Jul - Sarajevo", color: "#0ea5a4" },
+      { key: "Wed 8 Jul", label: "Wed 8 Jul - Sarajevo to Mostar train (time TBD)", color: "#2563eb" },
+      { key: "Thu 9 Jul", label: "Thu 9 Jul - Mostar", color: "#4f46e5" },
+      { key: "Fri 10 Jul", label: "Fri 10 Jul - Mostar to Dubrovnik bus 12:30-15:45", color: "#7c3aed" },
+      { key: "Sat 11 Jul", label: "Sat 11 Jul - Dubrovnik to Kotor bus 17:30-19:50", color: "#a855f7" },
+      { key: "Sun 12 Jul", label: "Sun 12 Jul - Kotor", color: "#ec4899" },
+      { key: "Mon 13 Jul", label: "Mon 13 Jul - Kotor", color: "#db2777" },
+      { key: "Tue 14 Jul", label: "Tue 14 Jul - possible Kotor to Budva taxi", color: "#b45309" },
+      { key: "Wed 15 Jul", label: "Wed 15 Jul - Budva", color: "#0891b2" },
+      { key: "Thu 16 Jul", label: "Thu 16 Jul - Budva to Tirana bus 16:30-21:30", color: "#0f766e" },
+      { key: "Fri 17 Jul", label: "Fri 17 Jul - Tirana", color: "#65a30d" },
+      { key: "Sat 18 Jul", label: "Sat 18 Jul - Tirana to Ohrid bus 13:00-16:00", color: "#dc2626" },
+      { key: "Sun 19 Jul", label: "Sun 19 Jul - Ohrid", color: "#ca8a04" },
+      { key: "Mon 20 Jul", label: "Mon 20 Jul - Ohrid to Tirana bus 14:00-16:50", color: "#334155" },
+      { key: "Tue 21 Jul", label: "Tue 21 Jul - fly out of Tirana", color: "#111827" }
+    ];
+
+    const defaultDayMeta = Object.fromEntries(defaultDayGroups.map(day => [day.key, day]));
+
+    const statusOrder = ["Booked / fixed", "Planned explore", "Possible transfer"];
+    const statusColors = {
+      "Booked / fixed": "#1d4ed8",
+      "Planned explore": "#d97706",
+      "Possible transfer": "#7c3aed"
+    };
+
+    const categoryOrder = [
+      "Flights & airports",
+      "Stations & terminals",
+      "City bases & old towns",
+      "Scenic sights"
+    ];
+
+    const categoryColors = {
+      "Flights & airports": "#0f172a",
+      "Stations & terminals": "#475569",
+      "City bases & old towns": "#ef4444",
+      "Scenic sights": "#0891b2"
+    };
+
+    const defaultPlaces = [
+      {
+        name: "Split Airport arrival",
+        dayGroups: ["Fri 3 Jul"],
+        dayLabel: "Fri 3 Jul",
+        status: "Booked / fixed",
+        category: "Flights & airports",
+        lat: 43.5389,
+        lng: 16.298,
+        search: "Split Airport",
+        notes: "Flying into Split on Friday 3 July."
+      },
+      {
+        name: "Diocletian's Palace / Split Old Town",
+        dayGroups: ["Fri 3 Jul", "Sat 4 Jul", "Sun 5 Jul", "Mon 6 Jul"],
+        dayLabel: "Fri 3-Mon 6 Jul",
+        status: "Planned explore",
+        category: "City bases & old towns",
+        lat: 43.5081,
+        lng: 16.4402,
+        search: "Diocletian's Palace Split",
+        notes: "Use this as the Split base pin while hotel details are still open.",
+        suggestions: [
+          "Explore Diocletian's Palace, especially the Peristyle and the palace lanes.",
+          "Climb the Cathedral of Saint Domnius bell tower for the classic city view.",
+          "Do a sunset walk on the Riva, then head up Marjan if you want a bigger panorama."
+        ]
+      },
+      {
+        name: "Split bus station",
+        dayGroups: ["Mon 6 Jul"],
+        dayLabel: "Mon 6 Jul - 13:30 departure",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 43.5048,
+        lng: 16.4419,
+        search: "Obala kneza Domagoja 12, 21000 Split",
+        notes: "Bus to Sarajevo departs at 13:30 from Obala kneza Domagoja 12. Screenshot shows route CHR212 operated by Globtour Medugorje."
+      },
+      {
+        name: "Sarajevo bus station",
+        dayGroups: ["Mon 6 Jul"],
+        dayLabel: "Mon 6 Jul - 19:50 arrival",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 43.8549,
+        lng: 18.3957,
+        search: "Put zivota 8, 71000 Sarajevo",
+        notes: "Arrival from Split at 19:50 on Monday 6 July."
+      },
+      {
+        name: "Bascarsija / Sarajevo Old Town",
+        dayGroups: ["Mon 6 Jul", "Tue 7 Jul", "Wed 8 Jul"],
+        dayLabel: "Mon 6-Wed 8 Jul",
+        status: "Planned explore",
+        category: "City bases & old towns",
+        lat: 43.8594,
+        lng: 18.4334,
+        search: "Bascarsija Sarajevo",
+        notes: "Good Sarajevo anchor for the old town stay before the train day.",
+        suggestions: [
+          "Wander Bascarsija and Sebilj, then dip into the side streets for coffee and small shops.",
+          "See City Hall and the riverfront for one of Sarajevo's most striking buildings.",
+          "Take the Trebevic cable car if you want views, mountain air, and the old Olympic bob track.",
+          "Visit the Tunnel of Hope if you want the strongest modern-history stop."
+        ]
+      },
+      {
+        name: "Sarajevo Railway Station",
+        dayGroups: ["Wed 8 Jul"],
+        dayLabel: "Wed 8 Jul - train time TBD",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 43.8549,
+        lng: 18.3964,
+        search: "Sarajevo Railway Station",
+        notes: "Train day from Sarajevo to Mostar. Time still to confirm."
+      },
+      {
+        name: "Mostar station area",
+        dayGroups: ["Wed 8 Jul"],
+        dayLabel: "Wed 8 Jul - arrival by train",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 43.3437,
+        lng: 17.8078,
+        search: "Mostar railway station",
+        notes: "Arrival point for the Sarajevo to Mostar train day."
+      },
+      {
+        name: "Mostar Old Bridge",
+        dayGroups: ["Wed 8 Jul", "Thu 9 Jul", "Fri 10 Jul"],
+        dayLabel: "Wed 8-Fri 10 Jul",
+        status: "Planned explore",
+        category: "Scenic sights",
+        lat: 43.337,
+        lng: 17.8156,
+        search: "Stari Most Mostar",
+        notes: "Use this as the main Mostar explore pin around the old bridge.",
+        suggestions: [
+          "Cross Stari Most and spend time in the old bazaar lanes on both sides of the river.",
+          "Go up the Koski Mehmed Pasha Mosque viewpoint for one of the best bridge views.",
+          "Slow down for a riverside coffee and watch for the traditional bridge divers."
+        ]
+      },
+      {
+        name: "Mostar Istocni Kolodvor",
+        dayGroups: ["Fri 10 Jul"],
+        dayLabel: "Fri 10 Jul - 12:30 departure",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 43.3433,
+        lng: 17.8075,
+        search: "Trg Ivana Krndelja bb, 88000 Mostar",
+        notes: "Bus to Dubrovnik departs at 12:30. Screenshot shows route CHR213 operated by Globtour Medugorje."
+      },
+      {
+        name: "Dubrovnik bus station",
+        dayGroups: ["Fri 10 Jul", "Sat 11 Jul"],
+        dayLabel: "Fri 10 Jul - 15:45 arrival / Sat 11 Jul - 17:30 departure",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 42.6613,
+        lng: 18.0841,
+        search: "Obala pape Ivana Pavla II 44, 20000 Dubrovnik",
+        notes: "Arrive from Mostar at 15:45 on Friday, then depart for Kotor at 17:30 on Saturday."
+      },
+      {
+        name: "Dubrovnik Old Town",
+        dayGroups: ["Fri 10 Jul", "Sat 11 Jul"],
+        dayLabel: "Fri 10-Sat 11 Jul",
+        status: "Planned explore",
+        category: "City bases & old towns",
+        lat: 42.6401,
+        lng: 18.1101,
+        search: "Dubrovnik Old Town",
+        notes: "Explore anchor for the Dubrovnik stay between the Mostar and Kotor buses.",
+        suggestions: [
+          "Walk the city walls if you want the signature Dubrovnik experience.",
+          "Take the cable car or head up Mount Srd for the full old-town panorama.",
+          "If the timing works, hop over to Lokrum for swimming, shade, and a quick island break."
+        ]
+      },
+      {
+        name: "Kotor bus station",
+        dayGroups: ["Sat 11 Jul"],
+        dayLabel: "Sat 11 Jul - 19:50 arrival",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 42.4251,
+        lng: 18.7715,
+        search: "M-2, 85330 Kotor",
+        notes: "Arrival from Dubrovnik at 19:50 on Saturday 11 July."
+      },
+      {
+        name: "Kotor Old Town",
+        dayGroups: ["Sat 11 Jul", "Sun 12 Jul", "Mon 13 Jul", "Tue 14 Jul"],
+        dayLabel: "Sat 11-Tue 14 Jul",
+        status: "Planned explore",
+        category: "City bases & old towns",
+        lat: 42.4245,
+        lng: 18.7712,
+        search: "Kotor Old Town",
+        notes: "Kotor base before the Budva move.",
+        suggestions: [
+          "Get lost in the old town lanes and squares before the cruise crowds thin out again.",
+          "Climb part of the fortress walls for the postcard view over the bay.",
+          "Use one day for a Bay of Kotor boat outing, ideally toward Perast and Our Lady of the Rocks."
+        ]
+      },
+      {
+        name: "Possible taxi: Kotor to Budva",
+        dayGroups: ["Tue 14 Jul"],
+        dayLabel: "Tue 14 Jul",
+        status: "Possible transfer",
+        category: "Stations & terminals",
+        lat: 42.334,
+        lng: 18.813,
+        search: "Kotor to Budva Montenegro",
+        notes: "Pinned as the possible taxi transfer you mentioned for Tuesday 14 July."
+      },
+      {
+        name: "Budva Old Town",
+        dayGroups: ["Tue 14 Jul", "Wed 15 Jul", "Thu 16 Jul"],
+        dayLabel: "Tue 14-Thu 16 Jul",
+        status: "Planned explore",
+        category: "City bases & old towns",
+        lat: 42.278,
+        lng: 18.8378,
+        search: "Budva Old Town",
+        notes: "Budva stay anchor if you move over from Kotor on the 14th.",
+        suggestions: [
+          "Explore the walled old town and citadel area first before it gets busier.",
+          "Use Mogren or another nearby Riviera beach for an easy swim-and-sun afternoon.",
+          "Do an evening seafront walk for the classic Budva summer atmosphere."
+        ]
+      },
+      {
+        name: "Budva AS",
+        dayGroups: ["Thu 16 Jul"],
+        dayLabel: "Thu 16 Jul - 16:30 departure",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 42.2916,
+        lng: 18.8403,
+        search: "Rozino, 85310 Budva",
+        notes: "Bus to Tirana departs at 16:30 on Thursday 16 July. Screenshot shows route CHR3238 operated by Drita Travel."
+      },
+      {
+        name: "Tirana East Gate Lindor",
+        dayGroups: ["Thu 16 Jul", "Sat 18 Jul", "Mon 20 Jul"],
+        dayLabel: "Thu 16 Jul - 21:30 arrival / Sat 18 Jul - 13:00 departure / Mon 20 Jul - 16:50 arrival",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 41.3295,
+        lng: 19.8752,
+        search: "Rruga Nacionale, Autostrada Tirane - Elbasan, 1045 Tirana",
+        notes: "Tirana bus terminal pin used for the Budva arrival, Ohrid departure, and Ohrid return."
+      },
+      {
+        name: "Tirana City Centre / Skanderbeg Square",
+        dayGroups: ["Thu 16 Jul", "Fri 17 Jul", "Sat 18 Jul", "Mon 20 Jul", "Tue 21 Jul"],
+        dayLabel: "Thu 16-Tue 21 Jul",
+        status: "Planned explore",
+        category: "City bases & old towns",
+        lat: 41.3275,
+        lng: 19.8187,
+        search: "Skanderbeg Square Tirana",
+        notes: "Tirana city anchor for the first stay and the final return before flying home.",
+        suggestions: [
+          "Start with Skanderbeg Square, Et'hem Bey Mosque, and the Clock Tower cluster.",
+          "Head to the New Bazaar for a livelier food-and-drink stop.",
+          "Choose Bunk'Art or House of Leaves if you want a stronger recent-history museum.",
+          "Take the Dajti cable car if you want a half-day nature break and city views."
+        ]
+      },
+      {
+        name: "Ohrid bus station",
+        dayGroups: ["Sat 18 Jul", "Mon 20 Jul"],
+        dayLabel: "Sat 18 Jul - 16:00 arrival / Mon 20 Jul - 14:00 departure",
+        status: "Booked / fixed",
+        category: "Stations & terminals",
+        lat: 41.1124,
+        lng: 20.8019,
+        search: "Vele Markov 9, 6000 Ohrid",
+        notes: "Bus station used for both the Tirana arrival on Saturday and the return trip on Monday."
+      },
+      {
+        name: "Lake Ohrid / Old Town",
+        dayGroups: ["Sat 18 Jul", "Sun 19 Jul", "Mon 20 Jul"],
+        dayLabel: "Sat 18-Mon 20 Jul",
+        status: "Planned explore",
+        category: "Scenic sights",
+        lat: 41.1128,
+        lng: 20.7947,
+        search: "Ohrid Old Town",
+        notes: "Ohrid stay anchor around the lakefront and old town.",
+        suggestions: [
+          "Walk the lakeside boardwalk to St John at Kaneo for the classic Ohrid view.",
+          "Climb up through the old town to Samuel's Fortress and the church sites above the lake.",
+          "Leave time for a boat ride or a slower lakeside swim-and-cafe stretch."
+        ]
+      },
+      {
+        name: "Tirana Airport departure",
+        dayGroups: ["Tue 21 Jul"],
+        dayLabel: "Tue 21 Jul",
+        status: "Booked / fixed",
+        category: "Flights & airports",
+        lat: 41.4147,
+        lng: 19.7206,
+        search: "Tirana International Airport Nene Tereza",
+        notes: "Flying out of Tirana on Tuesday 21 July."
+      }
+    ];
+
+    const defaultRoutes = [
+      {
+        label: "Fri 3 Jul arrival",
+        dayGroup: "Fri 3 Jul",
+        color: defaultDayMeta["Fri 3 Jul"].color,
+        names: ["Split Airport arrival", "Diocletian's Palace / Split Old Town"]
+      },
+      {
+        label: "Mon 6 Jul bus (13:30-19:50)",
+        dayGroup: "Mon 6 Jul",
+        color: defaultDayMeta["Mon 6 Jul"].color,
+        names: [
+          "Diocletian's Palace / Split Old Town",
+          "Split bus station",
+          "Sarajevo bus station",
+          "Bascarsija / Sarajevo Old Town"
+        ]
+      },
+      {
+        label: "Wed 8 Jul train (time TBD)",
+        dayGroup: "Wed 8 Jul",
+        color: defaultDayMeta["Wed 8 Jul"].color,
+        dashArray: "8 8",
+        names: [
+          "Bascarsija / Sarajevo Old Town",
+          "Sarajevo Railway Station",
+          "Mostar station area",
+          "Mostar Old Bridge"
+        ]
+      },
+      {
+        label: "Fri 10 Jul bus (12:30-15:45)",
+        dayGroup: "Fri 10 Jul",
+        color: defaultDayMeta["Fri 10 Jul"].color,
+        names: [
+          "Mostar Old Bridge",
+          "Mostar Istocni Kolodvor",
+          "Dubrovnik bus station",
+          "Dubrovnik Old Town"
+        ]
+      },
+      {
+        label: "Sat 11 Jul bus (17:30-19:50)",
+        dayGroup: "Sat 11 Jul",
+        color: defaultDayMeta["Sat 11 Jul"].color,
+        names: [
+          "Dubrovnik Old Town",
+          "Dubrovnik bus station",
+          "Kotor bus station",
+          "Kotor Old Town"
+        ]
+      },
+      {
+        label: "Tue 14 Jul possible taxi",
+        dayGroup: "Tue 14 Jul",
+        color: defaultDayMeta["Tue 14 Jul"].color,
+        dashArray: "8 8",
+        names: [
+          "Kotor Old Town",
+          "Possible taxi: Kotor to Budva",
+          "Budva Old Town"
+        ]
+      },
+      {
+        label: "Thu 16 Jul bus (16:30-21:30)",
+        dayGroup: "Thu 16 Jul",
+        color: defaultDayMeta["Thu 16 Jul"].color,
+        names: [
+          "Budva Old Town",
+          "Budva AS",
+          "Tirana East Gate Lindor",
+          "Tirana City Centre / Skanderbeg Square"
+        ]
+      },
+      {
+        label: "Sat 18 Jul bus (13:00-16:00)",
+        dayGroup: "Sat 18 Jul",
+        color: defaultDayMeta["Sat 18 Jul"].color,
+        names: [
+          "Tirana City Centre / Skanderbeg Square",
+          "Tirana East Gate Lindor",
+          "Ohrid bus station",
+          "Lake Ohrid / Old Town"
+        ]
+      },
+      {
+        label: "Mon 20 Jul bus (14:00-16:50)",
+        dayGroup: "Mon 20 Jul",
+        color: defaultDayMeta["Mon 20 Jul"].color,
+        names: [
+          "Lake Ohrid / Old Town",
+          "Ohrid bus station",
+          "Tirana East Gate Lindor",
+          "Tirana City Centre / Skanderbeg Square"
+        ]
+      },
+      {
+        label: "Tue 21 Jul departure",
+        dayGroup: "Tue 21 Jul",
+        color: defaultDayMeta["Tue 21 Jul"].color,
+        names: [
+          "Tirana City Centre / Skanderbeg Square",
+          "Tirana Airport departure"
+        ]
+      }
+    ];
+
+    const defaultTripData = {
+      dayGroups: defaultDayGroups,
+      places: defaultPlaces,
+      routes: defaultRoutes
+    };
+
+    let dayGroups = [];
+    let dayMeta = {};
+    let dayOrder = [];
+    let stageSets = {};
+    let places = [];
+    let routes = [];
+    let markers = [];
+    let routeLines = [];
+    let persistedTripData = JSON.parse(JSON.stringify(defaultTripData));
+    let tripRecordId = null;
+    let currentUser = null;
+    let sourceLabel = "Bundled fallback data";
+    const sharedEditToken = new URLSearchParams(window.location.search).get(TRIP_EDIT_QUERY_PARAM)?.trim() || "";
+    let sharedEditTokenValid = false;
+
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    const map = L.map("map").setView([42.55, 18.2], 7);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    let filterValues = {
+      status: [...statusOrder],
+      category: [...categoryOrder],
+      day: []
+    };
+
+    const selected = {
+      status: new Set(statusOrder),
+      category: new Set(categoryOrder),
+      day: new Set()
+    };
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function markerIcon(category, status) {
+      return L.divIcon({
+        className: "custom-pin",
+        html: `
+          <div class="pin-outer" style="background:${categoryColors[category] || "#6d28d9"}">
+            <div class="pin-inner" style="background:${statusColors[status] || "#ffffff"}"></div>
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -12]
+      });
+    }
+
+    function renderList(items, title) {
+      if (!items || !items.length) return "";
+      const list = items.map(item => `<li>${escapeHtml(item)}</li>`).join("");
+      return `
+        <div class="popup-section">
+          <div class="popup-section-title">${escapeHtml(title)}</div>
+          <ul class="popup-list">${list}</ul>
+        </div>
+      `;
+    }
+
+    function buildStageSets() {
+      const keep = keys => keys.filter(key => dayMeta[key]);
+      return {
+        "All trip": [...dayOrder],
+        "Croatia": keep(["Fri 3 Jul", "Sat 4 Jul", "Sun 5 Jul", "Mon 6 Jul", "Fri 10 Jul", "Sat 11 Jul"]),
+        "Bosnia": keep(["Mon 6 Jul", "Tue 7 Jul", "Wed 8 Jul", "Thu 9 Jul", "Fri 10 Jul"]),
+        "Montenegro": keep(["Sat 11 Jul", "Sun 12 Jul", "Mon 13 Jul", "Tue 14 Jul", "Wed 15 Jul", "Thu 16 Jul"]),
+        "Albania + Ohrid": keep(["Thu 16 Jul", "Fri 17 Jul", "Sat 18 Jul", "Sun 19 Jul", "Mon 20 Jul", "Tue 21 Jul"])
+      };
+    }
+
+    function currentTripData() {
+      return {
+        dayGroups: deepClone(dayGroups),
+        places: deepClone(places),
+        routes: deepClone(routes)
+      };
+    }
+
+    function validateTripData(data) {
+      const errors = [];
+
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return ["Trip data must be a JSON object."];
+      }
+
+      if (!Array.isArray(data.dayGroups)) errors.push("`dayGroups` must be an array.");
+      if (!Array.isArray(data.places)) errors.push("`places` must be an array.");
+      if (!Array.isArray(data.routes)) errors.push("`routes` must be an array.");
+      if (errors.length) return errors;
+
+      const dayKeys = new Set();
+      data.dayGroups.forEach((day, index) => {
+        if (!day || typeof day !== "object") {
+          errors.push(`dayGroups[${index}] must be an object.`);
+          return;
+        }
+        if (!day.key || typeof day.key !== "string") errors.push(`dayGroups[${index}].key must be a string.`);
+        if (!day.label || typeof day.label !== "string") errors.push(`dayGroups[${index}].label must be a string.`);
+        if (!day.color || typeof day.color !== "string") errors.push(`dayGroups[${index}].color must be a string.`);
+        if (day.key && dayKeys.has(day.key)) errors.push(`Duplicate day key: ${day.key}`);
+        if (day.key) dayKeys.add(day.key);
+      });
+
+      const placeNames = new Set();
+      data.places.forEach((place, index) => {
+        if (!place || typeof place !== "object") {
+          errors.push(`places[${index}] must be an object.`);
+          return;
+        }
+        ["name", "dayLabel", "status", "category", "search", "notes"].forEach(field => {
+          if (!place[field] || typeof place[field] !== "string") {
+            errors.push(`places[${index}].${field} must be a string.`);
+          }
+        });
+        if (!Array.isArray(place.dayGroups)) errors.push(`places[${index}].dayGroups must be an array.`);
+        if (!Number.isFinite(Number(place.lat))) errors.push(`places[${index}].lat must be a number.`);
+        if (!Number.isFinite(Number(place.lng))) errors.push(`places[${index}].lng must be a number.`);
+        if (place.status && !statusOrder.includes(place.status)) errors.push(`places[${index}].status must use a known status.`);
+        if (place.category && !categoryOrder.includes(place.category)) errors.push(`places[${index}].category must use a known category.`);
+        if (Array.isArray(place.dayGroups)) {
+          place.dayGroups.forEach(dayKey => {
+            if (!dayKeys.has(dayKey)) errors.push(`places[${index}] references unknown day key: ${dayKey}`);
+          });
+        }
+        if (place.suggestions && !Array.isArray(place.suggestions)) {
+          errors.push(`places[${index}].suggestions must be an array when present.`);
+        }
+        if (Array.isArray(place.suggestions)) {
+          place.suggestions.forEach((item, itemIndex) => {
+            if (typeof item !== "string") errors.push(`places[${index}].suggestions[${itemIndex}] must be a string.`);
+          });
+        }
+        if (place.name && placeNames.has(place.name)) errors.push(`Duplicate place name: ${place.name}`);
+        if (place.name) placeNames.add(place.name);
+      });
+
+      data.routes.forEach((route, index) => {
+        if (!route || typeof route !== "object") {
+          errors.push(`routes[${index}] must be an object.`);
+          return;
+        }
+        if (!route.label || typeof route.label !== "string") errors.push(`routes[${index}].label must be a string.`);
+        if (!route.dayGroup || typeof route.dayGroup !== "string") errors.push(`routes[${index}].dayGroup must be a string.`);
+        if (!Array.isArray(route.names) || route.names.length < 2) errors.push(`routes[${index}].names must be an array with at least two place names.`);
+        if (route.dayGroup && !dayKeys.has(route.dayGroup)) errors.push(`routes[${index}] references unknown day key: ${route.dayGroup}`);
+        if (Array.isArray(route.names)) {
+          route.names.forEach(name => {
+            if (!placeNames.has(name)) errors.push(`routes[${index}] references unknown place: ${name}`);
+          });
+        }
+      });
+
+      return errors;
+    }
+
+    function rebuildDerivedState() {
+      dayMeta = Object.fromEntries(dayGroups.map(day => [day.key, day]));
+      dayOrder = dayGroups.map(day => day.key);
+      stageSets = buildStageSets();
+      filterValues = {
+        status: [...statusOrder],
+        category: [...categoryOrder],
+        day: [...dayOrder]
+      };
+    }
+
+    function reconcileSelections(resetFilters = false) {
+      if (resetFilters || !selected.status.size) selected.status = new Set(filterValues.status);
+      else selected.status = new Set([...selected.status].filter(value => filterValues.status.includes(value)));
+
+      if (resetFilters || !selected.category.size) selected.category = new Set(filterValues.category);
+      else selected.category = new Set([...selected.category].filter(value => filterValues.category.includes(value)));
+
+      if (resetFilters || !selected.day.size) selected.day = new Set(filterValues.day);
+      else selected.day = new Set([...selected.day].filter(value => filterValues.day.includes(value)));
+
+      if (!selected.day.size) selected.day = new Set(filterValues.day);
+      if (!selected.status.size) selected.status = new Set(filterValues.status);
+      if (!selected.category.size) selected.category = new Set(filterValues.category);
+    }
+
+    function renderPopup(place) {
+      const google = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.search)}`;
+      return `
+        <div class="popup-title">${escapeHtml(place.name)}</div>
+        <div>${escapeHtml(place.notes)}</div>
+        ${renderList(place.suggestions, "Good Nearby Ideas")}
+        <div class="popup-tags">
+          <span class="tag">${escapeHtml(place.dayLabel)}</span>
+          <span class="tag">${escapeHtml(place.status)}</span>
+          <span class="tag">${escapeHtml(place.category)}</span>
+        </div>
+        <a class="popup-link" href="${google}" target="_blank" rel="noopener">Open in Google Maps</a>
+      `;
+    }
+
+    function rebuildMapLayers() {
+      markers.forEach(marker => {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      });
+      routeLines.forEach(line => {
+        if (map.hasLayer(line)) map.removeLayer(line);
+      });
+
+      const byName = Object.fromEntries(places.map(place => [place.name, place]));
+
+      markers = places.map(place => {
+        const marker = L.marker([Number(place.lat), Number(place.lng)], {
+          icon: markerIcon(place.category, place.status)
+        }).bindPopup(renderPopup(place));
+        marker.place = place;
+        return marker;
+      });
+
+      routeLines = routes
+        .map(route => {
+          const coords = route.names
+            .filter(name => byName[name])
+            .map(name => [Number(byName[name].lat), Number(byName[name].lng)]);
+
+          if (coords.length < 2) return null;
+
+          const line = L.polyline(coords, {
+            color: route.color || dayMeta[route.dayGroup]?.color || "#475569",
+            weight: 3,
+            opacity: 0.55,
+            dashArray: route.dashArray || null
+          }).bindTooltip(route.label);
+          line.dayGroup = route.dayGroup;
+          return line;
+        })
+        .filter(Boolean);
+    }
+
+    function applyTripData(data, options = {}) {
+      const { resetFilters = false, source = sourceLabel, syncEditor = false } = options;
+
+      dayGroups = deepClone(data.dayGroups);
+      places = deepClone(data.places);
+      routes = deepClone(data.routes);
+
+      rebuildDerivedState();
+      reconcileSelections(resetFilters);
+      renderFilters();
+      rebuildMapLayers();
+
+      sourceLabel = source;
+      tripSourceTag.textContent = sourceLabel;
+
+      if (syncEditor) {
+        tripJsonEditor.value = JSON.stringify(currentTripData(), null, 2);
+      }
+
+      updateMap();
+    }
+
+    const controlPanel = document.getElementById("controlPanel");
+    const panelToggle = document.getElementById("panelToggle");
+    const panelToggleText = document.getElementById("panelToggleText");
+    const tripSourceTag = document.getElementById("tripSourceTag");
+    const authStatus = document.getElementById("authStatus");
+    const editorStatus = document.getElementById("editorStatus");
+    const editorPanel = document.getElementById("editorPanel");
+    const tripJsonEditor = document.getElementById("tripJsonEditor");
+    const authRow = document.getElementById("authRow");
+    const authEmail = document.getElementById("authEmail");
+    const openEditorButton = document.getElementById("openEditorButton");
+    const saveTripButton = document.getElementById("saveTripButton");
+    const signOutButton = document.getElementById("signOutButton");
+    const sendMagicLinkButton = document.getElementById("sendMagicLinkButton");
+    const mobilePanelQuery = window.matchMedia("(max-width: 720px)");
+    let desktopPanelCollapsed = false;
+    let mobilePanelCollapsed = true;
+    let previousMobileState = mobilePanelQuery.matches;
+
+    function persistedSourceText() {
+      return tripRecordId ? "Live from Supabase" : "Bundled fallback data";
+    }
+
+    function setStatusLine(element, message, tone = "warning") {
+      element.textContent = message;
+      element.dataset.tone = tone;
+    }
+
+    function isMobileView() {
+      return mobilePanelQuery.matches;
+    }
+
+    function isOwnerSession() {
+      return Boolean(currentUser && currentUser.id === TRIP_OWNER_ID);
+    }
+
+    function canEditTrip() {
+      return isOwnerSession() || sharedEditTokenValid;
+    }
+
+    function panelToggleLabel(collapsed) {
+      if (isMobileView()) return collapsed ? "Show sidebar" : "Hide sidebar";
+      return collapsed ? "Expand sidebar" : "Collapse sidebar";
+    }
+
+    function setPanelCollapsed(collapsed, refit = true) {
+      if (isMobileView()) mobilePanelCollapsed = collapsed;
+      else desktopPanelCollapsed = collapsed;
+
+      controlPanel.dataset.collapsed = collapsed ? "true" : "false";
+      panelToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      panelToggleText.textContent = panelToggleLabel(collapsed);
+
+      if (refit) {
+        requestAnimationFrame(() => {
+          map.invalidateSize();
+          updateMap();
+        });
+      }
+    }
+
+    function togglePanel() {
+      setPanelCollapsed(controlPanel.dataset.collapsed !== "true");
+    }
+
+    function toggleEditor(forceOpen) {
+      if (!canEditTrip()) return;
+
+      const shouldOpen = typeof forceOpen === "boolean"
+        ? forceOpen
+        : editorPanel.dataset.open !== "true";
+
+      editorPanel.dataset.open = shouldOpen ? "true" : "false";
+      openEditorButton.textContent = shouldOpen ? "Close editor" : "Open editor";
+
+      if (shouldOpen && !tripJsonEditor.value.trim()) {
+        tripJsonEditor.value = JSON.stringify(persistedTripData, null, 2);
+      }
+
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        updateMap();
+      });
+    }
+
+    function getFitBoundsPadding() {
+      const rect = controlPanel.getBoundingClientRect();
+      const edgePadding = 22;
+
+      if (isMobileView()) {
+        const bottomPadding = Math.max(Math.round(rect.height) + 18, 120);
+        return {
+          paddingTopLeft: [edgePadding, edgePadding],
+          paddingBottomRight: [edgePadding, bottomPadding]
+        };
+      }
+
+      const leftPadding = Math.max(Math.round(rect.width) + 28, 150);
+      return {
+        paddingTopLeft: [leftPadding, edgePadding],
+        paddingBottomRight: [edgePadding, edgePadding]
+      };
+    }
+
+    function handleViewportResize() {
+      const mobileNow = isMobileView();
+      if (mobileNow !== previousMobileState) {
+        previousMobileState = mobileNow;
+        setPanelCollapsed(mobileNow ? mobilePanelCollapsed : desktopPanelCollapsed);
+        return;
+      }
+
+      panelToggleText.textContent = panelToggleLabel(controlPanel.dataset.collapsed === "true");
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        updateMap();
+      });
+    }
+
+    function filterLabel(type, value) {
+      if (type === "day") return dayMeta[value]?.label || value;
+      return value;
+    }
+
+    function filterColor(type, value) {
+      if (type === "status") return statusColors[value];
+      if (type === "category") return categoryColors[value];
+      return dayMeta[value]?.color || "#6d28d9";
+    }
+
+    function makeFilters(type, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      filterValues[type].forEach(value => {
+        const id = `${type}-${value}`.replace(/[^a-z0-9]/gi, "-");
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        const dot = document.createElement("span");
+        const text = document.createTextNode(` ${filterLabel(type, value)}`);
+
+        input.type = "checkbox";
+        input.id = id;
+        input.dataset.type = type;
+        input.dataset.value = value;
+        input.checked = selected[type].has(value);
+
+        dot.className = "dot";
+        dot.style.background = filterColor(type, value);
+
+        label.appendChild(input);
+        label.appendChild(dot);
+        label.appendChild(text);
+        container.appendChild(label);
+      });
+    }
+
+    function renderFilters() {
+      makeFilters("status", "statusFilters");
+      makeFilters("category", "categoryFilters");
+      makeFilters("day", "dayFilters");
+
+      document.querySelectorAll('#statusFilters input[type="checkbox"], #categoryFilters input[type="checkbox"], #dayFilters input[type="checkbox"]').forEach(box => {
+        box.addEventListener("change", event => {
+          const type = event.target.dataset.type;
+          const value = event.target.dataset.value;
+          if (event.target.checked) selected[type].add(value);
+          else selected[type].delete(value);
+          updateMap();
+        });
+      });
+    }
+
+    function syncBoxes(type) {
+      document.querySelectorAll(`input[data-type="${type}"]`).forEach(box => {
+        box.checked = selected[type].has(box.dataset.value);
+      });
+    }
+
+    function syncAll() {
+      syncBoxes("status");
+      syncBoxes("category");
+      syncBoxes("day");
+    }
+
+    function selectAll(type) {
+      selected[type] = new Set(filterValues[type]);
+      syncBoxes(type);
+      updateMap();
+    }
+
+    function clearAll(type) {
+      selected[type] = new Set();
+      syncBoxes(type);
+      updateMap();
+    }
+
+    function showEverything() {
+      selected.status = new Set(filterValues.status);
+      selected.category = new Set(filterValues.category);
+      selected.day = new Set(filterValues.day);
+      syncAll();
+      updateMap();
+    }
+
+    function showBookedOnly() {
+      selected.status = new Set(["Booked / fixed"]);
+      selected.category = new Set(filterValues.category);
+      selected.day = new Set(filterValues.day);
+      syncAll();
+      updateMap();
+    }
+
+    function showTravelOnly() {
+      selected.status = new Set(filterValues.status);
+      selected.category = new Set(["Flights & airports", "Stations & terminals"]);
+      selected.day = new Set(filterValues.day);
+      syncAll();
+      updateMap();
+    }
+
+    function focusStage(stage) {
+      selected.day = new Set(stageSets[stage] || dayOrder);
+      syncBoxes("day");
+      updateMap();
+    }
+
+    function updateMap() {
+      const visibleMarkers = [];
+      const visibleRoutes = [];
+
+      markers.forEach(marker => {
+        const place = marker.place;
+        const dayMatch = place.dayGroups.some(day => selected.day.has(day));
+        const show = selected.status.has(place.status) && selected.category.has(place.category) && dayMatch;
+        if (show) {
+          if (!map.hasLayer(marker)) marker.addTo(map);
+          visibleMarkers.push(marker);
+        } else if (map.hasLayer(marker)) {
+          map.removeLayer(marker);
+        }
+      });
+
+      routeLines.forEach(line => {
+        const show = selected.day.has(line.dayGroup);
+        if (show) {
+          if (!map.hasLayer(line)) line.addTo(map);
+          visibleRoutes.push(line);
+        } else if (map.hasLayer(line)) {
+          map.removeLayer(line);
+        }
+      });
+
+      document.getElementById("visibleCount").textContent =
+        `${visibleMarkers.length} of ${markers.length} pins visible - ${visibleRoutes.length} route lines visible`;
+
+      const layersForBounds = [...visibleMarkers, ...visibleRoutes];
+      if (layersForBounds.length) {
+        const bounds = L.featureGroup(layersForBounds).getBounds();
+        if (bounds.isValid()) map.fitBounds(bounds, getFitBoundsPadding());
+      }
+    }
+
+    function updateAuthUi() {
+      const signedIn = Boolean(currentUser);
+      const owner = isOwnerSession();
+      const shared = sharedEditTokenValid;
+
+      authRow.hidden = shared;
+      authEmail.value = signedIn && currentUser.email ? currentUser.email : authEmail.value;
+      signOutButton.hidden = !signedIn;
+      openEditorButton.disabled = !canEditTrip();
+      saveTripButton.disabled = !canEditTrip();
+      sendMagicLinkButton.disabled = false;
+
+      if (owner) {
+        setStatusLine(authStatus, `Signed in as owner${currentUser.email ? ` (${currentUser.email})` : ""}. You can preview and save changes.`, "live");
+      } else if (shared) {
+        setStatusLine(authStatus, "Shared edit link active. Anyone with this link can preview and save changes.", "preview");
+      } else if (signedIn) {
+        setStatusLine(authStatus, "Signed in, but this account is not the owner for this trip row.", "warning");
+      } else if (sharedEditToken) {
+        setStatusLine(authStatus, "Shared edit link detected, but it has not been verified yet.", "warning");
+      } else {
+        setStatusLine(authStatus, "Public read-only mode. Sign in as the trip owner to edit and save.", "warning");
+      }
+
+      if (!canEditTrip()) {
+        editorPanel.dataset.open = "false";
+        openEditorButton.textContent = "Open editor";
+      }
+    }
+
+    function restoreSavedTrip() {
+      tripJsonEditor.value = JSON.stringify(persistedTripData, null, 2);
+      applyTripData(persistedTripData, {
+        resetFilters: false,
+        source: persistedSourceText()
+      });
+      setStatusLine(editorStatus, "Restored the last saved trip data.", "live");
+    }
+
+    function previewEditorChanges() {
+      let parsed;
+      try {
+        parsed = JSON.parse(tripJsonEditor.value);
+      } catch (error) {
+        setStatusLine(editorStatus, `JSON parse error: ${error.message}`, "warning");
+        return;
+      }
+
+      const errors = validateTripData(parsed);
+      if (errors.length) {
+        setStatusLine(editorStatus, `Cannot preview yet: ${errors[0]}`, "warning");
+        return;
+      }
+
+      applyTripData(parsed, {
+        resetFilters: false,
+        source: "Previewing unsaved changes"
+      });
+      setStatusLine(editorStatus, "Preview applied locally. Save online when you're happy with it.", "preview");
+    }
+
+    async function sendMagicLink() {
+      const email = authEmail.value.trim();
+      if (!email) {
+        setStatusLine(authStatus, "Enter the email address tied to your Supabase user first.", "warning");
+        return;
+      }
+
+      sendMagicLinkButton.disabled = true;
+      setStatusLine(authStatus, "Sending magic link...", "warning");
+
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: redirectTo
+        }
+      });
+
+      sendMagicLinkButton.disabled = false;
+
+      if (error) {
+        setStatusLine(authStatus, `Could not send magic link: ${error.message}`, "warning");
+        return;
+      }
+
+      setStatusLine(authStatus, `Magic link sent to ${email}. Open it on this device to unlock editing.`, "live");
+    }
+
+    async function signOutUser() {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        setStatusLine(authStatus, `Could not sign out: ${error.message}`, "warning");
+        return;
+      }
+      currentUser = null;
+      updateAuthUi();
+    }
+
+    async function verifySharedEditToken(showMessage = false) {
+      if (!sharedEditToken) {
+        sharedEditTokenValid = false;
+        updateAuthUi();
+        return false;
+      }
+
+      if (showMessage) {
+        setStatusLine(authStatus, "Checking shared edit link...", "warning");
+      }
+
+      const { data, error } = await supabaseClient.rpc("verify_trip_edit_token", {
+        trip_slug: TRIP_SLUG,
+        edit_token: sharedEditToken
+      });
+
+      sharedEditTokenValid = Boolean(data) && !error;
+      updateAuthUi();
+
+      if (error && showMessage) {
+        setStatusLine(authStatus, `Could not verify the shared edit link: ${error.message}`, "warning");
+      } else if (!sharedEditTokenValid && showMessage) {
+        setStatusLine(authStatus, "This shared edit link is not valid for the current trip.", "warning");
+      }
+
+      return sharedEditTokenValid;
+    }
+
+    async function loadRemoteTrip(showSuccessMessage = true) {
+      const { data, error } = await supabaseClient
+        .from("trips")
+        .select("id, slug, title, owner_id, data, updated_at")
+        .eq("slug", TRIP_SLUG)
+        .maybeSingle();
+
+      if (error) {
+        setStatusLine(authStatus, `Could not load Supabase trip data: ${error.message}`, "warning");
+        return;
+      }
+
+      if (!data) {
+        tripRecordId = null;
+        persistedTripData = deepClone(defaultTripData);
+        applyTripData(persistedTripData, {
+          resetFilters: true,
+          source: "Bundled fallback data",
+          syncEditor: true
+        });
+        if (showSuccessMessage) {
+          const message = isOwnerSession()
+            ? "No live trip row found yet. Save once to create it after the SQL policies are in place."
+            : sharedEditToken
+              ? "The shared edit link is present, but the live trip row does not exist yet, so the page is showing bundled fallback data."
+              : "No live trip row found yet, so the page is showing bundled fallback data.";
+          setStatusLine(authStatus, message, "warning");
+        }
+        return;
+      }
+
+      const errors = validateTripData(data.data);
+      if (errors.length) {
+        setStatusLine(authStatus, `The live trip row loaded, but its JSON is invalid: ${errors[0]}`, "warning");
+        return;
+      }
+
+      tripRecordId = data.id;
+      persistedTripData = deepClone(data.data);
+      applyTripData(persistedTripData, {
+        resetFilters: true,
+        source: "Live from Supabase",
+        syncEditor: true
+      });
+
+      if (showSuccessMessage) {
+        const updatedText = data.updated_at
+          ? ` Last saved ${new Date(data.updated_at).toLocaleString()}.`
+          : "";
+        setStatusLine(authStatus, `Loaded the live trip data from Supabase.${updatedText}`, "live");
+      }
+    }
+
+    async function saveEditorToSupabase() {
+      if (!canEditTrip()) {
+        setStatusLine(editorStatus, "Use the shared edit link or sign in as the trip owner before saving.", "warning");
+        return;
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(tripJsonEditor.value);
+      } catch (error) {
+        setStatusLine(editorStatus, `JSON parse error: ${error.message}`, "warning");
+        return;
+      }
+
+      const errors = validateTripData(parsed);
+      if (errors.length) {
+        setStatusLine(editorStatus, `Cannot save yet: ${errors[0]}`, "warning");
+        return;
+      }
+
+      saveTripButton.disabled = true;
+      setStatusLine(editorStatus, "Saving to Supabase...", "warning");
+
+      let result;
+      if (isOwnerSession() && tripRecordId) {
+        result = await supabaseClient
+          .from("trips")
+          .update({ title: TRIP_TITLE, data: parsed })
+          .eq("id", tripRecordId)
+          .select("id, updated_at, data")
+          .single();
+      } else if (isOwnerSession()) {
+        const payload = {
+          slug: TRIP_SLUG,
+          title: TRIP_TITLE,
+          owner_id: currentUser.id,
+          data: parsed
+        };
+        result = await supabaseClient
+          .from("trips")
+          .insert(payload)
+          .select("id, updated_at, data")
+          .single();
+      } else {
+        result = await supabaseClient.rpc("save_trip_with_edit_token", {
+          trip_slug: TRIP_SLUG,
+          new_data: parsed,
+          edit_token: sharedEditToken
+        });
+      }
+
+      saveTripButton.disabled = false;
+
+      if (result.error) {
+        const hint = isOwnerSession()
+          ? (tripRecordId
+            ? "Check that the update policy and owner UUID are correct."
+            : "If this is the first save, add an INSERT policy for the owner or create the row once in SQL.")
+          : "Check that the shared edit token SQL function is installed and that the link token matches the stored hash.";
+        setStatusLine(editorStatus, `Save failed: ${result.error.message}. ${hint}`, "warning");
+        return;
+      }
+
+      persistedTripData = deepClone(parsed);
+      await loadRemoteTrip(false);
+      const updatedText = new Date().toLocaleString();
+      setStatusLine(editorStatus, `Saved successfully to Supabase at ${updatedText}.`, "live");
+      setStatusLine(authStatus, "Live trip data is up to date.", "live");
+    }
+
+    async function initializeSupabase() {
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        currentUser = session?.user ?? null;
+        updateAuthUi();
+      });
+
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) {
+        setStatusLine(authStatus, `Auth session check failed: ${error.message}`, "warning");
+      } else {
+        currentUser = data.session?.user ?? null;
+      }
+
+      updateAuthUi();
+      await loadRemoteTrip(false);
+      await verifySharedEditToken(false);
+    }
+
+    window.addEventListener("resize", handleViewportResize);
+
+    applyTripData(persistedTripData, {
+      resetFilters: true,
+      source: "Bundled fallback data",
+      syncEditor: true
+    });
+    setPanelCollapsed(previousMobileState ? mobilePanelCollapsed : desktopPanelCollapsed, false);
+    updateAuthUi();
+    initializeSupabase();
+  </script>
+</body>
+</html>
