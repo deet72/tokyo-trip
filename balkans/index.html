@@ -348,6 +348,11 @@
       flex-wrap: wrap;
     }
 
+    .editor-card .button-row,
+    .editor-card .segmented-row {
+      margin-bottom: 0;
+    }
+
     .segmented-row button[data-active="true"] {
       background: #dff3ef;
       border-color: #95d6c9;
@@ -575,6 +580,18 @@
         white-space: nowrap;
       }
 
+      .editor-card .button-row,
+      .editor-card .segmented-row {
+        flex-wrap: wrap;
+        overflow: visible;
+        padding-bottom: 0;
+      }
+
+      .editor-card .button-row::-webkit-scrollbar,
+      .editor-card .segmented-row::-webkit-scrollbar {
+        display: none;
+      }
+
       button {
         padding: 9px 12px;
         font-size: 13px;
@@ -601,7 +618,11 @@
 
       .text-input,
       .auth-row button,
-      .editor-card .button-row button {
+      .editor-card .button-row button,
+      .editor-card .segmented-row button,
+      .editor-select,
+      .editor-input,
+      .editor-multiline {
         width: 100%;
       }
 
@@ -611,6 +632,24 @@
 
       .editor-grid {
         grid-template-columns: 1fr;
+      }
+
+      .editor-card .button-row button,
+      .editor-card .segmented-row button {
+        flex: 1 1 100%;
+        white-space: normal;
+      }
+
+      .editor-panel {
+        gap: 12px;
+      }
+
+      .editor-subsection {
+        gap: 12px;
+      }
+
+      .day-picks {
+        max-height: 220px;
       }
 
       label {
